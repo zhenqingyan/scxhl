@@ -2,23 +2,7 @@
     ViewData["Title"] = "Home Page";
 }
 <i-Layout id="app">
-  <i-Content>
-    <Row>
-      <i-col span='12'>
-        <Upload action="ExportFile" accept='.jpg'>
-          <i-button>上传图片</i-button>
-        </Upload>
-      </i-col>
-      <i-col span='12'>
-        <i-button @@click='QueryData'>查询</i-button>
-      </i-col>
-    </Row>
-  </i-Content>
-    <i-Content>
-      <i-table :columns="tableData.columns" :data="tableData.data" :loading="tableData.loading">
-
-      </i-table>
-    </i-Content>
+ <h1>维护中。。。</h1>
 </i-Layout>
 
 @section Scripts  {
@@ -33,66 +17,15 @@
             data:function(){
               let _self=this;
               return {
-                  tableData:{
-                    columns:[{
-                        type: 'index',
-                        width:60,
-                        align: 'center'
-                    },{
-                        title: '唯一标识',
-                        key: 'guid'
-                    },{
-                      title:'图片',
-                      render:(h,params)=>{
-                        return h('img',{
-                          style:{
-                            width:'100px',
-                            height:'100px'
-                          },
-                          domProps:{
-                            src:'GetImg?guid='+params.row.guid,
-                          }
-                        })
-                      }
-                    },{
-                      title:'操作',
-                      render:(h,params)=>{
-                        let _self=this;
-                        return h('i-switch', {
-                          props:{
-                            loading:false,
-                            value:params.row.status
-                          },
-                          on:{
-                            'on-change':(value)=>{
-                              axios.post('Update',{
-                                guid:params.row.guid,
-                                status:value}).then(function(resp){
-                                  _self.$Message.info(resp.data);
-                                });
-                            }
-                          }
-                        })
-                      }
-                    }],
-                    data:[],
-                    loading:false
+                
                   }
               };
             },
             methods:{
-                QueryData:function(){
-                  let _self=this;
-                  _self.tableData.loading=true;
-                  axios.get('GetImgs').then(function(resp){
-                    _self.tableData.data=resp.data;
-                    _self.tableData.loading=false;
-                  })
-                }
+               
             },
             mounted:function(){
               let _self=this;
-              _self.QueryData();
             }
           })
         }
