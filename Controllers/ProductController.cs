@@ -9,12 +9,18 @@ using henglong.Web.Common;
 using MongoDB.Bson;
 using Microsoft.AspNetCore.Hosting;
 using System.IO;
+using Aliyun.OSS;
 
 namespace henglong.Web.Controllers
 {
     public class ProductController : Controller
     {
         private readonly IMongoDbHelper<BsonDocument> _mongodbHelper;
+        private OssClient ossClient;
+        private readonly string _endPoint = "oss-cn-shanghai-internal.aliyuncs.com";
+        private readonly string _accessKey = "";
+        private readonly string _accessSecret = "";
+        private readonly string _bucketName = "";
 
         private readonly IHostingEnvironment _hostingEnvironment;
         public ProductController(IMongoDbHelper<BsonDocument> mongodbHelper,
@@ -22,6 +28,7 @@ namespace henglong.Web.Controllers
         {
             _mongodbHelper = mongodbHelper;
             _hostingEnvironment = hostingEnvironment;
+            ossClient = new OssClient(_endPoint, _accessKey, _accessSecret);
         }
         public IActionResult Index()
         {
@@ -37,7 +44,7 @@ namespace henglong.Web.Controllers
                 var imgInfo = new ImgesVm()
                 {
                     guid = item.GetValue(1).ToString(),
-                    status=item.GetValue(2).ToBoolean()
+                    status = item.GetValue(2).ToBoolean()
                 };
                 result.Add(imgInfo);
             }
@@ -51,15 +58,14 @@ namespace henglong.Web.Controllers
             foreach (var item in files)
             {
                 var fileGuid = Guid.NewGuid().ToString();
-                string filePath = webPath + "/upload/" + fileGuid + ".jpg";
-                using (var fileSteam = new FileStream(filePath, FileMode.Create))
+                using (var fileSteam = new MemoryStream())
                 {
                     var bsonDocument = new BsonDocument();
                     bsonDocument.Add(new BsonElement("Guid", fileGuid));
                     bsonDocument.Add(new BsonElement("Status", true));
-
                     _mongodbHelper.InsetOne(bsonDocument);
                     item.CopyTo(fileSteam);
+                    ossClient.PutObject(_bucketName, fileGuid, fileSteam);
                 }
             }
         }
@@ -67,12 +73,12 @@ namespace henglong.Web.Controllers
         [HttpGet]
         public FileResult GetImg(string guid)
         {
-            var filePath = _hostingEnvironment.WebRootPath + "/upload/" + guid + ".jpg";
-            using (var file = new FileStream(filePath, FileMode.Open))
+            var response = ossClient.GetObject(_bucketName, guid);
+            using (var responseStream = response.Content)
             {
-                var fileLen = (int)file.Length;
+                var fileLen = (int)responseStream.Length;
                 var fileBytes = new byte[fileLen];
-                file.Read(fileBytes, 0, fileLen);
+                responseStream.Read(fileBytes, 0, fileLen);
                 return new FileContentResult(fileBytes, "image/jpeg");
             }
         }
