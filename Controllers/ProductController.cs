@@ -18,9 +18,10 @@ namespace henglong.Web.Controllers
         private readonly IMongoDbHelper<BsonDocument> _mongodbHelper;
         private OssClient ossClient;
         private readonly string _endPoint = "oss-cn-shanghai-internal.aliyuncs.com";
+        //private readonly string _endPoint = "oss-cn-shanghai.aliyuncs.com";
         private readonly string _accessKey = "";
         private readonly string _accessSecret = "";
-        private readonly string _bucketName = "";
+        private readonly string _bucketName = "henglong";
 
         private readonly IHostingEnvironment _hostingEnvironment;
         public ProductController(IMongoDbHelper<BsonDocument> mongodbHelper,
@@ -57,16 +58,13 @@ namespace henglong.Web.Controllers
             var webPath = _hostingEnvironment.WebRootPath;
             foreach (var item in files)
             {
-                var fileGuid = Guid.NewGuid().ToString();
-                using (var fileSteam = new MemoryStream())
-                {
-                    var bsonDocument = new BsonDocument();
-                    bsonDocument.Add(new BsonElement("Guid", fileGuid));
-                    bsonDocument.Add(new BsonElement("Status", true));
-                    _mongodbHelper.InsetOne(bsonDocument);
-                    item.CopyTo(fileSteam);
-                    ossClient.PutObject(_bucketName, fileGuid, fileSteam);
-                }
+                var fileGuid = Guid.NewGuid().ToString() + ".jpg";
+                var bsonDocument = new BsonDocument();
+                bsonDocument.Add(new BsonElement("Guid", fileGuid));
+                bsonDocument.Add(new BsonElement("Status", true));
+                _mongodbHelper.InsetOne(bsonDocument);
+                ossClient.PutObject(_bucketName, fileGuid, item.OpenReadStream());
+                ossClient.SetObjectAcl(_bucketName, fileGuid, CannedAccessControlList.PublicRead);
             }
         }
 
@@ -76,10 +74,16 @@ namespace henglong.Web.Controllers
             var response = ossClient.GetObject(_bucketName, guid);
             using (var responseStream = response.Content)
             {
-                var fileLen = (int)responseStream.Length;
-                var fileBytes = new byte[fileLen];
-                responseStream.Read(fileBytes, 0, fileLen);
-                return new FileContentResult(fileBytes, "image/jpeg");
+
+                using (var memeryStrem = new MemoryStream())
+                {
+                    responseStream.CopyTo(memeryStrem);
+                    var fileLen = (int)responseStream.Length;
+                    var fileBytes = new byte[fileLen];
+                    memeryStrem.Position=0;
+                    var readlll= memeryStrem.Read(fileBytes, 0, fileLen);
+                    return new FileContentResult(fileBytes, "image/jpeg");
+                }
             }
         }
 
