@@ -23,14 +23,13 @@ namespace henglong.Web.Controllers
         public async Task<IList<ImgesVm>> Get(int index = 0, int pageSize = 9)
         {
             var imgsList = await _mongodbHelper.GetImagesDataAsync();
-            var result = new List<ImgesVm>();
             int id = 1;
             foreach (var item in imgsList)
             {
                 item.Id = id;
                 id++;
             }
-            return result.Where(p => p.Status).OrderByDescending(p => p.Level).Skip(index * pageSize).Take(pageSize).ToList();
+            return imgsList.Where(p => p.Status).OrderByDescending(p => p.Level).Skip(index * pageSize).Take(pageSize).ToList();
         }
     }
 }
