@@ -38,7 +38,7 @@
                 <a href="javascript:void(0);" v-on:click="delData(item)"><Icon size="20" type="ios-remove-circle" /></a>
                 <i-switch v-model="item.status" @@on-change="changeStatus($event,item)"></i-switch>
             </div>
-            <img class="customer-img" :src="'GetImg?guid='+item.guid" />
+            <img class="customer-img" :src="'https://henglong.oss-cn-shanghai.aliyuncs.com/'+item.guid" />
             <p>排序等级</p>
             <i-input v-model="item.level" placeholder="输入等级" style="width:100px"></i-input>
             <p>{{item.guid}}</p>

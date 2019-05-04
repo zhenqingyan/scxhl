@@ -20,7 +20,7 @@ namespace henglong.Web.Controllers
             _mongodbHelper = mongodbHelper;
         }
         [HttpGet]
-        public async Task<IList<ImgesVm>> Get(int index = 0, int pageSize = 0)
+        public async Task<IList<ImgesVm>> Get(int index = 0, int pageSize = 9)
         {
             var imgsList = await _mongodbHelper.GetImagesDataAsync();
             var result = new List<ImgesVm>();
