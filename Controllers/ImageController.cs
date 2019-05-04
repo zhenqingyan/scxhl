@@ -20,26 +20,17 @@ namespace henglong.Web.Controllers
             _mongodbHelper = mongodbHelper;
         }
         [HttpGet]
-        public IList<ImgesVm> Get(int index=0,int pageSize=20)
+        public async Task<IList<ImgesVm>> Get(int index = 0, int pageSize = 0)
         {
-            var imgsList = _mongodbHelper.GetData();
+            var imgsList = await _mongodbHelper.GetImagesDataAsync();
             var result = new List<ImgesVm>();
-            int id=1;
+            int id = 1;
             foreach (var item in imgsList)
             {
-                var imgInfo = new ImgesVm()
-                {
-                    id=id,
-                    guid = item.GetValue(1).ToString(),
-                    status = item.GetValue(2).ToBoolean()
-                };
+                item.Id = id;
                 id++;
-                if(imgInfo.status)
-                {
-                    result.Add(imgInfo);
-                }
             }
-            return result.Skip(index*pageSize).Take(pageSize).ToList();
+            return result.Where(p => p.Status).OrderByDescending(p => p.Level).Skip(index * pageSize).Take(pageSize).ToList();
         }
     }
 }

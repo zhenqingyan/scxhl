@@ -1,6 +1,18 @@
 ﻿@{
     ViewData["Title"] = "Home Page";
 }
+<style>
+  html,body{
+    background-color: rgba(214,214,214,0.2)
+  }
+  .customer-img{
+    width: 100px;
+    height: 200px;
+  }
+  .customer-col{
+    padding: 5px;
+  }
+</style>
 <i-Layout id="app">
   <i-Content>
     <Row>
@@ -15,93 +27,36 @@
     </Row>
   </i-Content>
     <i-Content>
-      <i-table :columns="tableData.columns" :data="tableData.data" :loading="tableData.loading">
-
-      </i-table>
+      <Row>
+        <i-col span="8" v-for="item in tableData.data" class="customer-col">
+          <Card>
+            <p slot="title">
+              {{item.name}}
+            </p>
+            <div slot="extra">
+                <a href="javascript:void(0);" v-on:click="saveLevel(item)"><Icon size="20" type="md-send" /></a>
+                <a href="javascript:void(0);" v-on:click="delData(item)"><Icon size="20" type="ios-remove-circle" /></a>
+                <i-switch v-model="item.status" @@on-change="changeStatus($event,item)"></i-switch>
+            </div>
+            <img class="customer-img" :src="'GetImg?guid='+item.guid" />
+            <p>排序等级</p>
+            <i-input v-model="item.level" placeholder="输入等级" style="width:100px"></i-input>
+            <p>{{item.guid}}</p>
+            <p>{{item.createTime}}</p>
+          </Card>
+        </i-col>
+      </Row>
+      <Row>
+          <i-col offset="4" span="12"> 
+            <Page 
+              :total="pageData.total" 
+              :current.sync="pageData.current" 
+              :page-size="pageData.pageSize" @@on-change="changePage" show-total></Page>
+          </i-col>
+      </Row>
     </i-Content>
 </i-Layout>
 
 @section Scripts  {
-  <script>
-    $(function(){
-
-      var vueInstance=function(){
-        var init=function(){
-
-          var vue=new Vue({
-            el:"#app",
-            data:function(){
-              let _self=this;
-              return {
-                  tableData:{
-                    columns:[{
-                        type: 'index',
-                        width:60,
-                        align: 'center'
-                    },{
-                        title: '唯一标识',
-                        key: 'guid'
-                    },{
-                      title:'图片',
-                      render:(h,params)=>{
-                        return h('img',{
-                          style:{
-                            width:'100px',
-                            height:'100px'
-                          },
-                          domProps:{
-                            src:'GetImg?guid='+params.row.guid,
-                          }
-                        })
-                      }
-                    },{
-                      title:'操作',
-                      render:(h,params)=>{
-                        let _self=this;
-                        return h('i-switch', {
-                          props:{
-                            loading:false,
-                            value:params.row.status
-                          },
-                          on:{
-                            'on-change':(value)=>{
-                              axios.post('Update',{
-                                guid:params.row.guid,
-                                status:value}).then(function(resp){
-                                  _self.$Message.info(resp.data);
-                                });
-                            }
-                          }
-                        })
-                      }
-                    }],
-                    data:[],
-                    loading:false
-                  }
-              };
-            },
-            methods:{
-                QueryData:function(){
-                  let _self=this;
-                  _self.tableData.loading=true;
-                  axios.get('GetImgs').then(function(resp){
-                    _self.tableData.data=resp.data;
-                    _self.tableData.loading=false;
-                  })
-                }
-            },
-            mounted:function(){
-              let _self=this;
-              _self.QueryData();
-            }
-          })
-        }
-        return {
-          Init:init
-        }
-      }();
-
-      vueInstance.Init();
-    })
-  </script>
+  <script src="~/js/product.js"></script>
 }
