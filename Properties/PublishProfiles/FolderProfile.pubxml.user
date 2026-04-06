@@ -1,0 +1,11 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<!--
+https://go.microsoft.com/fwlink/?LinkID=208121.
+-->
+<Project>
+  <PropertyGroup>
+    <_PublishTargetUrl>C:\work\code\henglong\henglong.Web\bin\Release\netcoreapp2.1\publish\</_PublishTargetUrl>
+    <History>True|2022-12-18T12:20:35.2048608Z;</History>
+    <LastFailureDetails />
+  </PropertyGroup>
+</Project>

@@ -6,29 +6,32 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using henglong.Web.Models;
 using henglong.Web.Common;
-using MongoDB.Bson;
 using Microsoft.AspNetCore.Hosting;
 using System.IO;
 using Aliyun.OSS;
+using System.Drawing;
 
 namespace henglong.Web.Controllers
 {
     public class ProductController : Controller
     {
-        private readonly IMongoDbHelper<BsonDocument> _mongodbHelper;
+        private readonly IMySqlHelper _mySqlHelper;
         private OssClient ossClient;
-        private readonly string _endPoint = "oss-cn-shanghai-internal.aliyuncs.com";
-        //private readonly string _endPoint = "oss-cn-shanghai.aliyuncs.com";
+
+        private readonly string _endPoint = "oss-cn-shanghai.aliyuncs.com";
+
+        //private readonly string _endPoint = "oss-cn-shanghai-internal.aliyuncs.com";
+
         private readonly string _accessKey = "";
         private readonly string _accessSecret = "";
         private readonly string _bucketName = "henglong";
         private readonly IHostingEnvironment _hostingEnvironment;
         private static List<byte> imgList = null;
         private static Object lockObj = new object();
-        public ProductController(IMongoDbHelper<BsonDocument> mongodbHelper,
+        public ProductController(IMySqlHelper mySqlHelper,
         IHostingEnvironment hostingEnvironment)
         {
-            _mongodbHelper = mongodbHelper;
+            _mySqlHelper = mySqlHelper;
             _hostingEnvironment = hostingEnvironment;
             ossClient = new OssClient(_endPoint, _accessKey, _accessSecret);
         }
@@ -37,9 +40,9 @@ namespace henglong.Web.Controllers
             return View();
         }
         [HttpPost]
-        public async Task<IActionResult> GetImgs([FromBody]QueryVm entity)
+        public async Task<IActionResult> GetImgs([FromBody] QueryVm entity)
         {
-            var imgsList = await _mongodbHelper.GetImagesDataAsync();
+            var imgsList = await _mySqlHelper.GetImagesDataAsync();
             var totalCount = imgsList.Count;
             return Json(new
             {
@@ -54,13 +57,24 @@ namespace henglong.Web.Controllers
             foreach (var item in files)
             {
                 var fileGuid = Guid.NewGuid().ToString() + ".jpg";
-                var bsonDocument = new BsonDocument();
-                bsonDocument.Add(new BsonElement("Guid", fileGuid));
-                bsonDocument.Add(new BsonElement("Status", true));
-                bsonDocument.Add(new BsonElement("CreateTime", DateTime.Now));
-                bsonDocument.Add(new BsonElement("Name", item.FileName));
-                bsonDocument.Add(new BsonElement("Level", 1));
-                _mongodbHelper.InsetOne(bsonDocument);
+                var entity = new ImgesVm
+                {
+                    Guid = fileGuid,
+                    Status = true,
+                    CreateTime = DateTime.Now,
+                    Name = item.FileName,
+                    Level = 1,
+                    Number = "",
+                    Composition = "",
+                    YarnCount = "",
+                    Density = "",
+                    GramWeight = "",
+                    Doorframe = "",
+                    Width = 0,
+                    Height = 0,
+                    Percent = 0
+                };
+                _mySqlHelper.InsertOne(entity);
                 ossClient.PutObject(_bucketName, fileGuid, item.OpenReadStream());
                 ossClient.SetObjectAcl(_bucketName, fileGuid, CannedAccessControlList.PublicRead);
             }
@@ -79,7 +93,7 @@ namespace henglong.Web.Controllers
                     var fileLen = (int)responseStream.Length;
                     var fileBytes = new byte[fileLen];
                     memeryStrem.Position = 0;
-                    var readlll =await memeryStrem.ReadAsync(fileBytes, 0, fileLen);
+                    var readlll = await memeryStrem.ReadAsync(fileBytes, 0, fileLen);
                     return new FileContentResult(fileBytes, "image/jpeg");
                 }
             }
@@ -101,23 +115,32 @@ namespace henglong.Web.Controllers
         }
 
         [HttpPost]
-        public JsonResult Update([FromBody]UpdateVm entity)
+        public JsonResult Update([FromBody] UpdateVm entity)
         {
-            var result = _mongodbHelper.UpdateOne(entity.guid, entity.status);
+            var result = _mySqlHelper.UpdateStatus(entity.guid, entity.status);
             return Json(result ? "成功" : "失败");
         }
 
         [HttpPost]
-        public async Task<IActionResult> UpdateLevel([FromBody]UpdateLevelVm entity)
+        public async Task<IActionResult> UpdateLevel([FromBody] UpdateLevelVm entity)
         {
-            var result = await _mongodbHelper.UpdateLevelAsync(entity.guid, entity.level);
+            entity.percent = Math.Round((entity.height * 1M / (entity.width * 1M)), 2);
+            var result = await _mySqlHelper.UpdateLevelAsync(entity);
             return Json(result ? "成功" : "失败");
         }
 
         [HttpPost]
-        public async Task<IActionResult> Del([FromBody]DelVm entity)
+        public async Task<IActionResult> UpdateSize([FromBody] UpdateSizeVm entity)
         {
-            var result = await _mongodbHelper.DelOneAsync(entity.guid);
+            entity.percent = Math.Round((entity.height * 1M / (entity.width * 1M)), 2);
+            var result = await _mySqlHelper.UpdateSizeAsync(entity);
+            return Json(result ? "成功" : "失败");
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> Del([FromBody] DelVm entity)
+        {
+            var result = await _mySqlHelper.DeleteOneAsync(entity.guid);
             return Json(result ? 1 : 0);
         }
     }

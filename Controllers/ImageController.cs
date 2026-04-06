@@ -3,8 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
-using MongoDB.Bson;
-using MongoDB.Driver;
 using henglong.Web.Common;
 using henglong.Web.Models;
 
@@ -14,15 +12,15 @@ namespace henglong.Web.Controllers
     [ApiController]
     public class ImageController : ControllerBase
     {
-        private readonly IMongoDbHelper<BsonDocument> _mongodbHelper;
-        public ImageController(IMongoDbHelper<BsonDocument> mongodbHelper)
+        private readonly IMySqlHelper _mySqlHelper;
+        public ImageController(IMySqlHelper mySqlHelper)
         {
-            _mongodbHelper = mongodbHelper;
+            _mySqlHelper = mySqlHelper;
         }
         [HttpGet]
         public async Task<IList<ImgesVm>> Get(int index = 0, int pageSize = 9)
         {
-            var imgsList = await _mongodbHelper.GetImagesDataAsync();
+            var imgsList = await _mySqlHelper.GetImagesDataAsync();
             int id = 1;
             foreach (var item in imgsList)
             {

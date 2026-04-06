@@ -34,6 +34,7 @@ namespace henglong.Web
             });
 
             services.AddSingleton<IMongoDbHelper<BsonDocument>,MongoDbHelper>();
+            services.AddScoped<IMySqlHelper, MySqlHelper>();
 
             services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_1);
 

@@ -2,61 +2,92 @@
     ViewData["Title"] = "Home Page";
 }
 <style>
-  html,body{
-    background-color: rgba(214,214,214,0.2)
-  }
-  .customer-img{
-    width: 100px;
-    height: 200px;
-  }
-  .customer-col{
-    padding: 5px;
-  }
+    html, body {
+        background-color: rgba(214,214,214,0.2)
+    }
+
+    .customer-img {
+        width: 100px;
+        height: 200px;
+    }
+
+    .customer-col {
+        padding: 5px;
+    }
 </style>
 <i-Layout id="app">
-  <i-Content>
-    <Row>
-      <i-col span='12'>
-        <Upload action="ExportFile" accept='.jpg'>
-          <i-button>上传图片</i-button>
-        </Upload>
-      </i-col>
-      <i-col span='12'>
-        <i-button @@click='QueryData'>查询</i-button>
-      </i-col>
-    </Row>
-  </i-Content>
     <i-Content>
-      <Row>
-        <i-col span="8" v-for="item in tableData.data" class="customer-col">
-          <Card>
-            <p slot="title">
-              {{item.name}}
-            </p>
-            <div slot="extra">
-                <a href="javascript:void(0);" v-on:click="saveLevel(item)"><Icon size="20" type="md-send" /></a>
-                <a href="javascript:void(0);" v-on:click="delData(item)"><Icon size="20" type="ios-remove-circle" /></a>
-                <i-switch v-model="item.status" @@on-change="changeStatus($event,item)"></i-switch>
-            </div>
-            <img class="customer-img" :src="'https://henglong.oss-cn-shanghai.aliyuncs.com/'+item.guid" />
-            <p>排序等级</p>
-            <i-input v-model="item.level" placeholder="输入等级" style="width:100px"></i-input>
-            <p>{{item.guid}}</p>
-            <p>{{item.createTime}}</p>
-          </Card>
-        </i-col>
-      </Row>
-      <Row>
-          <i-col offset="4" span="12"> 
-            <Page 
-              :total="pageData.total" 
-              :current.sync="pageData.current" 
-              :page-size="pageData.pageSize" @@on-change="changePage" show-total></Page>
-          </i-col>
-      </Row>
+        <Row>
+            <i-col span='12'>
+                <Upload action="ExportFile" accept='.jpg'>
+                    <i-button>上传图片</i-button>
+                </Upload>
+            </i-col>
+            <i-col span='12'>
+                <i-button @@click='QueryData'>查询</i-button>
+            </i-col>
+        </Row>
+    </i-Content>
+    <i-Content>
+        <Row>
+            <i-col span="8" v-for="item in tableData.data" class="customer-col">
+                <Card>
+                    <p slot="title">
+                        {{item.name}}
+                    </p>
+                    <div slot="extra">
+                        <a href="javascript:void(0);" v-on:click="saveLevel(item)"><Icon size="20" type="md-send" /></a>
+                        <a href="javascript:void(0);" v-on:click="delData(item)"><Icon size="20" type="ios-remove-circle" /></a>
+                        <i-switch v-model="item.status" @@on-change="changeStatus($event,item)"></i-switch>
+                    </div>
+                    <img class="customer-img" :src="'https://henglong.oss-cn-shanghai.aliyuncs.com/'+item.guid" />
+                    <i-form :model="item" :label-width="60" inline>
+                        <form-item label="排序等级" prop="level">
+                            <i-input v-model="item.level" placeholder="输入排序等级" style="width:100px"></i-input>
+                        </form-item>
+                        <form-item label="编号" prop="number">
+                            <i-input v-model="item.number" placeholder="输入编号" style="width:100px"></i-input>
+                        </form-item>
+                        <form-item label="成份" prop="composition">
+                            <i-input v-model="item.composition" placeholder="输入成份" style="width:100px"></i-input>
+                        </form-item>
+                        <form-item label="纱支" prop="yarnCount">
+                            <i-input v-model="item.yarnCount" placeholder="输入纱支" style="width:100px"></i-input>
+                        </form-item>
+                        <form-item label="密度" prop="density">
+                            <i-input v-model="item.density" placeholder="输入密度" style="width:100px"></i-input>
+                        </form-item>
+                        <form-item label="克重" prop="gramWeight">
+                            <i-input v-model="item.gramWeight" placeholder="输入克重" style="width:100px"></i-input>
+                        </form-item>
+                        <form-item label="门幅" prop="doorframe">
+                            <i-input v-model="item.doorframe" placeholder="输入门幅" style="width:100px"></i-input>
+                        </form-item>
+                         <form-item label="宽度" prop="width">
+                            <i-input v-model="item.width" placeholder="输入宽度" style="width:100px"></i-input>
+                        </form-item>
+                        <form-item label="高度" prop="height">
+                            <i-input v-model="item.height" placeholder="输入高度" style="width:100px"></i-input>
+                        </form-item>
+                        <form-item label="比例" prop="percent">
+                            <i-input v-model="item.percent" placeholder="输入比例" style="width:100px"></i-input>
+                        </form-item>
+                    </i-form>
+                    <p>{{item.guid}}</p>
+                    <p>{{item.createTime}}</p>
+                </Card>
+            </i-col>
+        </Row>
+        <Row>
+            <i-col offset="4" span="12">
+                <Page :total="pageData.total"
+                      :current.sync="pageData.current"
+                      :page-size="pageData.pageSize" @@on-change="changePage" show-total></Page>
+            </i-col>
+        </Row>
     </i-Content>
 </i-Layout>
 
 @section Scripts  {
-  <script src="~/js/product.js"></script>
+    <script src="~/js/product.js"></script>
 }

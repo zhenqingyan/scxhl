@@ -16,7 +16,10 @@ namespace henglong.Web.Common
         IList<T> GetDataByFilter(FilterDefinition<T> filter);
         bool UpdateOne(string key, bool status);
 
-        Task<bool> UpdateLevelAsync(string guid, int level);
+        Task<bool> UpdateLevelAsync(UpdateLevelVm param);
+
+        Task<bool> UpdateSizeAsync(UpdateSizeVm param);
+
         Task<bool> DelOneAsync(string guid);
     }
 }

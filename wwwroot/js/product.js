@@ -51,7 +51,16 @@ $(function () {
                         _self.$Spin.show();
                         axios.post('UpdateLevel', {
                             guid: item.guid,
-                            level: item.level
+                            level: item.level,
+                            number: item.number,
+                            composition: item.composition,
+                            yarnCount: item.yarnCount,
+                            density: item.density,
+                            gramWeight: item.gramWeight,
+                            doorframe: item.doorframe,
+                            width:item.width,
+                            height:item.height,
+                            percent:item.percent
                         }).then(function (resp) {
                             _self.$Spin.hide();
                             _self.$Message.info(resp.data);
