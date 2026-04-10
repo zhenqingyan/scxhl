@@ -3,22 +3,70 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - henglong.Web</title>
-    <link rel="stylesheet" type="text/css" href="~/lib/iview/dist/styles/iview.css">
-    <script src="~/lib/jquery/dist/jquery.min.js"></script>
-    <script src="~/lib/vue/dist/vue.min.js"></script>
-    <script src="~/lib/iview/dist/iview.min.js"></script>
+    <title>@ViewData["Title"] - 恒隆面料管理系统</title>
+    <!-- TDesign Vue3 -->
+    <link rel="stylesheet" href="~/lib/tdesign/tdesign.min.css" />
+    <!-- Axios -->
     <script src="~/lib/axios/dist/axios.min.js"></script>
+    <!-- Vue 3 -->
+    <script src="~/lib/vue/vue.global.prod.js"></script>
+    <!-- TDesign Vue Next -->
+    <script src="~/lib/tdesign/tdesign.min.js"></script>
+    <style>
+        * { box-sizing: border-box; }
+        body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f6fa; }
+        .app-header {
+            background: linear-gradient(135deg, #0052d9 0%, #1677ff 100%);
+            height: 56px;
+            display: flex;
+            align-items: center;
+            padding: 0 24px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 2px 8px rgba(0,82,217,0.2);
+        }
+        .app-header-logo {
+            font-size: 18px;
+            font-weight: 700;
+            color: #fff;
+            letter-spacing: 1px;
+        }
+        .app-header-nav {
+            display: flex;
+            gap: 8px;
+            margin-left: 32px;
+        }
+        .app-header-nav a {
+            color: rgba(255,255,255,0.85);
+            text-decoration: none;
+            padding: 6px 14px;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+        .app-header-nav a:hover,
+        .app-header-nav a.active {
+            background: rgba(255,255,255,0.18);
+            color: #fff;
+        }
+        .app-main {
+            min-height: calc(100vh - 56px);
+            padding: 24px;
+        }
+    </style>
 </head>
 <body>
-    <i-Layout>
-      <i-Header>
-
-      </i-Header>
-      <i-Content>
+    <header class="app-header">
+        <span class="app-header-logo">🧵 恒隆面料管理系统</span>
+        <nav class="app-header-nav">
+            <a href="/" class="@(ViewContext.RouteData.Values["controller"]?.ToString() == "Home" ? "active" : "")">首页</a>
+            <a href="/Product" class="@(ViewContext.RouteData.Values["controller"]?.ToString() == "Product" ? "active" : "")">产品管理</a>
+        </nav>
+    </header>
+    <main class="app-main">
         @RenderBody()
-      </i-Content>
-    </i-Layout>
+    </main>
     @RenderSection("Scripts", required: false)
 </body>
 </html>

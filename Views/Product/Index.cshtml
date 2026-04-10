@@ -1,93 +1,330 @@
 ﻿@{
-    ViewData["Title"] = "Home Page";
+    ViewData["Title"] = "产品管理";
 }
-<style>
-    html, body {
-        background-color: rgba(214,214,214,0.2)
-    }
 
-    .customer-img {
-        width: 100px;
-        height: 200px;
-    }
+<div id="app">
+    <!-- 顶部工具栏 -->
+    <t-card :bordered="false" style="margin-bottom:16px">
+        <t-row :gutter="16" align="middle">
+            <t-col :span="12">
+                <t-space>
+                    <t-upload
+                        :action="uploadUrl"
+                        accept=".jpg,.jpeg,.png"
+                        :multiple="true"
+                        :show-upload-progress="true"
+                        theme="file-input"
+                        @@success="onUploadSuccess"
+                        @@fail="onUploadFail"
+                    >
+                        <t-button variant="outline" theme="primary">
+                            <template #icon><t-icon name="upload" /></template>
+                            上传图片
+                        </t-button>
+                    </t-upload>
+                    <t-button theme="primary" @@click="queryData" :loading="loading">
+                        <template #icon><t-icon name="refresh" /></template>
+                        刷新列表
+                    </t-button>
+                </t-space>
+            </t-col>
+            <t-col :span="12" style="text-align:right">
+                <span style="color:#999;font-size:13px">共 {{ pageData.total }} 条记录</span>
+            </t-col>
+        </t-row>
+    </t-card>
 
-    .customer-col {
-        padding: 5px;
-    }
-</style>
-<i-Layout id="app">
-    <i-Content>
-        <Row>
-            <i-col span='12'>
-                <Upload action="ExportFile" accept='.jpg'>
-                    <i-button>上传图片</i-button>
-                </Upload>
-            </i-col>
-            <i-col span='12'>
-                <i-button @@click='QueryData'>查询</i-button>
-            </i-col>
-        </Row>
-    </i-Content>
-    <i-Content>
-        <Row>
-            <i-col span="8" v-for="item in tableData.data" class="customer-col">
-                <Card>
-                    <p slot="title">
-                        {{item.name}}
-                    </p>
-                    <div slot="extra">
-                        <a href="javascript:void(0);" v-on:click="saveLevel(item)"><Icon size="20" type="md-send" /></a>
-                        <a href="javascript:void(0);" v-on:click="delData(item)"><Icon size="20" type="ios-remove-circle" /></a>
-                        <i-switch v-model="item.status" @@on-change="changeStatus($event,item)"></i-switch>
+    <!-- 产品卡片列表 -->
+    <div v-if="loading" style="text-align:center;padding:60px 0">
+        <t-loading size="large" text="加载中..." />
+    </div>
+
+    <t-row v-else :gutter="[12,12]">
+        <t-col
+            v-for="item in tableData"
+            :key="item.guid"
+            :xs="24" :sm="12" :md="8" :lg="4" :xl="4"
+        >
+            <t-card
+                :bordered="true"
+                hover-shadow
+                class="product-card"
+                style="height:100%"
+            >
+                <!-- 卡片标题 -->
+                <template #title>
+                    <div class="card-title-row">
+                        <t-tooltip :content="item.name" placement="top">
+                            <span class="card-title-text">{{ item.name }}</span>
+                        </t-tooltip>
                     </div>
-                    <img class="customer-img" :src="'https://henglong.oss-cn-shanghai.aliyuncs.com/'+item.guid" />
-                    <i-form :model="item" :label-width="60" inline>
-                        <form-item label="排序等级" prop="level">
-                            <i-input v-model="item.level" placeholder="输入排序等级" style="width:100px"></i-input>
-                        </form-item>
-                        <form-item label="编号" prop="number">
-                            <i-input v-model="item.number" placeholder="输入编号" style="width:100px"></i-input>
-                        </form-item>
-                        <form-item label="成份" prop="composition">
-                            <i-input v-model="item.composition" placeholder="输入成份" style="width:100px"></i-input>
-                        </form-item>
-                        <form-item label="纱支" prop="yarnCount">
-                            <i-input v-model="item.yarnCount" placeholder="输入纱支" style="width:100px"></i-input>
-                        </form-item>
-                        <form-item label="密度" prop="density">
-                            <i-input v-model="item.density" placeholder="输入密度" style="width:100px"></i-input>
-                        </form-item>
-                        <form-item label="克重" prop="gramWeight">
-                            <i-input v-model="item.gramWeight" placeholder="输入克重" style="width:100px"></i-input>
-                        </form-item>
-                        <form-item label="门幅" prop="doorframe">
-                            <i-input v-model="item.doorframe" placeholder="输入门幅" style="width:100px"></i-input>
-                        </form-item>
-                         <form-item label="宽度" prop="width">
-                            <i-input v-model="item.width" placeholder="输入宽度" style="width:100px"></i-input>
-                        </form-item>
-                        <form-item label="高度" prop="height">
-                            <i-input v-model="item.height" placeholder="输入高度" style="width:100px"></i-input>
-                        </form-item>
-                        <form-item label="比例" prop="percent">
-                            <i-input v-model="item.percent" placeholder="输入比例" style="width:100px"></i-input>
-                        </form-item>
-                    </i-form>
-                    <p>{{item.guid}}</p>
-                    <p>{{item.createTime}}</p>
-                </Card>
-            </i-col>
-        </Row>
-        <Row>
-            <i-col offset="4" span="12">
-                <Page :total="pageData.total"
-                      :current.sync="pageData.current"
-                      :page-size="pageData.pageSize" @@on-change="changePage" show-total></Page>
-            </i-col>
-        </Row>
-    </i-Content>
-</i-Layout>
+                </template>
+                <template #actions>
+                    <t-space :size="4">
+                        <t-tooltip content="保存修改">
+                            <t-button
+                                variant="text"
+                                theme="primary"
+                                shape="circle"
+                                size="small"
+                                @@click="saveItem(item)"
+                            >
+                                <template #icon><t-icon name="check-circle" /></template>
+                            </t-button>
+                        </t-tooltip>
+                        <t-tooltip content="删除">
+                            <t-popconfirm
+                                content="确认删除该产品吗？"
+                                theme="danger"
+                                @@confirm="delData(item)"
+                            >
+                                <t-button
+                                    variant="text"
+                                    theme="danger"
+                                    shape="circle"
+                                    size="small"
+                                >
+                                    <template #icon><t-icon name="delete" /></template>
+                                </t-button>
+                            </t-popconfirm>
+                        </t-tooltip>
+                        <t-switch
+                            v-model="item.status"
+                            size="small"
+                            @@change="changeStatus($event, item)"
+                        />
+                    </t-space>
+                </template>
 
-@section Scripts  {
+                <!-- 产品图片 -->
+                <div class="product-img-wrap">
+                    <t-image
+                        :src="'https://henglong.oss-cn-shanghai.aliyuncs.com/' + item.guid"
+                        :style="{ width: '100%', height: '240px' }"
+                        fit="contain"
+                        :lazy="true"
+                    >
+                        <template #error>
+                            <div class="img-error">
+                                <t-icon name="image" size="32px" />
+                                <span>图片加载失败</span>
+                            </div>
+                        </template>
+                    </t-image>
+                </div>
+
+                <!-- 属性表单 -->
+                <t-form
+                    :model="item"
+                    label-align="right"
+                    :label-width="56"
+                    colon
+                    style="margin-top:12px"
+                >
+                    <t-row :gutter="8">
+                        <t-col :span="12">
+                            <t-form-item label="排序" name="level">
+                                <t-input-number
+                                    v-model="item.level"
+                                    placeholder="排序"
+                                    :min="1"
+                                    size="small"
+                                    style="width:100%"
+                                />
+                            </t-form-item>
+                        </t-col>
+                        <t-col :span="12">
+                            <t-form-item label="编号" name="number">
+                                <t-input
+                                    v-model="item.number"
+                                    placeholder="编号"
+                                    size="small"
+                                />
+                            </t-form-item>
+                        </t-col>
+                        <t-col :span="12">
+                            <t-form-item label="成份" name="composition">
+                                <t-input
+                                    v-model="item.composition"
+                                    placeholder="成份"
+                                    size="small"
+                                />
+                            </t-form-item>
+                        </t-col>
+                        <t-col :span="12">
+                            <t-form-item label="纱支" name="yarnCount">
+                                <t-input
+                                    v-model="item.yarnCount"
+                                    placeholder="纱支"
+                                    size="small"
+                                />
+                            </t-form-item>
+                        </t-col>
+                        <t-col :span="12">
+                            <t-form-item label="密度" name="density">
+                                <t-input
+                                    v-model="item.density"
+                                    placeholder="密度"
+                                    size="small"
+                                />
+                            </t-form-item>
+                        </t-col>
+                        <t-col :span="12">
+                            <t-form-item label="克重" name="gramWeight">
+                                <t-input
+                                    v-model="item.gramWeight"
+                                    placeholder="克重"
+                                    size="small"
+                                />
+                            </t-form-item>
+                        </t-col>
+                        <t-col :span="12">
+                            <t-form-item label="门幅" name="doorframe">
+                                <t-input
+                                    v-model="item.doorframe"
+                                    placeholder="门幅"
+                                    size="small"
+                                />
+                            </t-form-item>
+                        </t-col>
+                        <t-col :span="12">
+                            <t-form-item label="宽度" name="width">
+                                <t-input-number
+                                    v-model="item.width"
+                                    placeholder="宽度"
+                                    :min="0"
+                                    size="small"
+                                    style="width:100%"
+                                />
+                            </t-form-item>
+                        </t-col>
+                        <t-col :span="12">
+                            <t-form-item label="高度" name="height">
+                                <t-input-number
+                                    v-model="item.height"
+                                    placeholder="高度"
+                                    :min="0"
+                                    size="small"
+                                    style="width:100%"
+                                />
+                            </t-form-item>
+                        </t-col>
+                        <t-col :span="12">
+                            <t-form-item label="比例" name="percent">
+                                <t-input
+                                    :value="item.percent"
+                                    placeholder="自动计算"
+                                    size="small"
+                                    readonly
+                                    style="background:#f5f6fa"
+                                />
+                            </t-form-item>
+                        </t-col>
+                    </t-row>
+                </t-form>
+
+                <!-- 底部信息 -->
+                <t-divider style="margin:8px 0" />
+                <div class="card-footer">
+                    <t-tag
+                        v-if="item.status"
+                        theme="success"
+                        variant="light"
+                        size="small"
+                    >已启用</t-tag>
+                    <t-tag
+                        v-else
+                        theme="default"
+                        variant="light"
+                        size="small"
+                    >已禁用</t-tag>
+                    <span class="card-time">{{ formatTime(item.createTime) }}</span>
+                </div>
+            </t-card>
+        </t-col>
+    </t-row>
+
+    <!-- 空状态 -->
+    <t-empty
+        v-if="!loading && tableData.length === 0"
+        title="暂无产品数据"
+        description="请点击上传图片添加产品"
+        style="padding:60px 0"
+    />
+
+    <!-- 分页 -->
+    <div v-if="!loading && pageData.total > 0" class="pagination-wrap">
+        <t-pagination
+            v-model="pageData.current"
+            :total="pageData.total"
+            :page-size="pageData.pageSize"
+            show-jumper
+            show-page-size
+            :page-size-options="[9, 18, 27]"
+            @@change="onPageChange"
+            @@page-size-change="onPageSizeChange"
+        />
+    </div>
+</div>
+
+<style>
+.product-card {
+    transition: box-shadow 0.2s;
+}
+.card-title-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    max-width: 160px;
+}
+.card-title-text {
+    font-size: 13px;
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: #1a1a1a;
+}
+.product-img-wrap {
+    width: 100%;
+    background: #f8f9fb;
+    border-radius: 6px;
+    overflow: hidden;
+    border: 1px solid #f0f0f0;
+}
+.img-error {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 180px;
+    color: #bbb;
+    gap: 8px;
+    font-size: 12px;
+}
+.card-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.card-time {
+    font-size: 11px;
+    color: #999;
+}
+.pagination-wrap {
+    display: flex;
+    justify-content: center;
+    margin-top: 24px;
+    padding: 16px 0;
+    background: #fff;
+    border-radius: 8px;
+}
+/* TDesign 表单间距优化 */
+.t-form .t-form__item {
+    margin-bottom: 6px !important;
+}
+</style>
+
+@@section Scripts {
     <script src="~/js/product.js"></script>
 }
