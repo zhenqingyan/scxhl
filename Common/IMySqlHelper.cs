@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-using System.Threading.Tasks;
 using henglong.Web.Models;
 
 namespace henglong.Web.Common
@@ -12,7 +10,5 @@ namespace henglong.Web.Common
         Task<bool> UpdateLevelAsync(UpdateLevelVm param);
         Task<bool> UpdateSizeAsync(UpdateSizeVm param);
         Task<bool> DeleteOneAsync(string guid);
-        Task<int> BulkInsertAsync(IList<ImgesVm> entities);
-        void EnsureTableCreated();
     }
 }

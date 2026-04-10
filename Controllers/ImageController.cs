@@ -1,10 +1,6 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc;
 using henglong.Web.Common;
 using henglong.Web.Models;
+using Microsoft.AspNetCore.Mvc;
 
 namespace henglong.Web.Controllers
 {

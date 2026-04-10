@@ -1,11 +1,6 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 using Dapper;
 using henglong.Web.Models;
-using Microsoft.Extensions.Configuration;
-using MySql.Data.MySqlClient;
+using MySqlConnector;
 
 namespace henglong.Web.Common
 {
@@ -15,7 +10,7 @@ namespace henglong.Web.Common
 
         public MySqlHelper(IConfiguration configuration)
         {
-            _connectionString = configuration.GetConnectionString("MySql");
+            _connectionString = configuration.GetConnectionString("MySql") ?? string.Empty;
         }
 
         public void EnsureTableCreated()
@@ -153,29 +148,5 @@ namespace henglong.Web.Common
             }
         }
 
-        public async Task<int> BulkInsertAsync(IList<ImgesVm> entities)
-        {
-            var sql = @"INSERT IGNORE INTO products (Guid, Status, CreateTime, Name, Level, Number, Composition, YarnCount, Density, GramWeight, Doorframe, Width, Height, Percent)
-                        VALUES (@Guid, @Status, @CreateTime, @Name, @Level, @Number, @Composition, @YarnCount, @Density, @GramWeight, @Doorframe, @Width, @Height, @Percent)";
-
-            using (var conn = new MySqlConnection(_connectionString))
-            {
-                await conn.OpenAsync();
-                using (var transaction = conn.BeginTransaction())
-                {
-                    try
-                    {
-                        var inserted = await conn.ExecuteAsync(sql, entities, transaction);
-                        transaction.Commit();
-                        return inserted;
-                    }
-                    catch
-                    {
-                        transaction.Rollback();
-                        throw;
-                    }
-                }
-            }
-        }
     }
 }

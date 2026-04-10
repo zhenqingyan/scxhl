@@ -2,7 +2,7 @@ namespace henglong.Web.Models
 {
     public class UpdateSizeVm
     {
-        public string guid { get; set; }
+        public string guid { get; set; } = string.Empty;
 
         public int width { get; set; }
 

@@ -1,39 +1,27 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using henglong.Web.Models;
 using henglong.Web.Common;
-using Microsoft.AspNetCore.Hosting;
-using System.IO;
 using Aliyun.OSS;
-using System.Drawing;
 
 namespace henglong.Web.Controllers
 {
     public class ProductController : Controller
     {
         private readonly IMySqlHelper _mySqlHelper;
-        private OssClient ossClient;
+        private readonly OssClient _ossClient;
+        private readonly string _bucketName;
 
-        private readonly string _endPoint = "oss-cn-shanghai.aliyuncs.com";
-
-        //private readonly string _endPoint = "oss-cn-shanghai-internal.aliyuncs.com";
-
-        private readonly string _accessKey = "";
-        private readonly string _accessSecret = "";
-        private readonly string _bucketName = "henglong";
-        private readonly IHostingEnvironment _hostingEnvironment;
-        private static List<byte> imgList = null;
-        private static Object lockObj = new object();
         public ProductController(IMySqlHelper mySqlHelper,
-        IHostingEnvironment hostingEnvironment)
+            IConfiguration configuration)
         {
             _mySqlHelper = mySqlHelper;
-            _hostingEnvironment = hostingEnvironment;
-            ossClient = new OssClient(_endPoint, _accessKey, _accessSecret);
+
+            var endPoint = configuration["AliyunOss:EndPoint"] ?? string.Empty;
+            var accessKey = configuration["AliyunOss:AccessKey"] ?? string.Empty;
+            var accessSecret = configuration["AliyunOss:AccessSecret"] ?? string.Empty;
+            _bucketName = configuration["AliyunOss:BucketName"] ?? string.Empty;
+
+            _ossClient = new OssClient(endPoint, accessKey, accessSecret);
         }
         public IActionResult Index()
         {
@@ -75,15 +63,15 @@ namespace henglong.Web.Controllers
                     Percent = 0
                 };
                 _mySqlHelper.InsertOne(entity);
-                ossClient.PutObject(_bucketName, fileGuid, item.OpenReadStream());
-                ossClient.SetObjectAcl(_bucketName, fileGuid, CannedAccessControlList.PublicRead);
+                _ossClient.PutObject(_bucketName, fileGuid, item.OpenReadStream());
+                _ossClient.SetObjectAcl(_bucketName, fileGuid, CannedAccessControlList.PublicRead);
             }
         }
 
         [HttpGet]
         public async Task<FileResult> GetImg(string guid)
         {
-            var response = ossClient.GetObject(_bucketName, guid);
+            var response = _ossClient.GetObject(_bucketName, guid);
             using (var responseStream = response.Content)
             {
 

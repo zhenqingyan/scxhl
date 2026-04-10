@@ -2,6 +2,6 @@ namespace henglong.Web.Models
 {
     public class DelVm
     {
-        public string guid { get; set; }  
+        public string guid { get; set; } = string.Empty;  
     }
 }
