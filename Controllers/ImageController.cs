@@ -16,14 +16,8 @@ namespace henglong.Web.Controllers
         [HttpGet]
         public async Task<IList<ImgesVm>> Get(int index = 0, int pageSize = 9)
         {
-            var imgsList = await _mySqlHelper.GetImagesDataAsync();
-            int id = 1;
-            foreach (var item in imgsList)
-            {
-                item.Id = id;
-                id++;
-            }
-            return imgsList.Where(p => p.Status).OrderByDescending(p => p.Level).Skip(index * pageSize).Take(pageSize).ToList();
+            var imgsList = await _mySqlHelper.GetImagesDataAsync(index*pageSize,pageSize,true);
+            return imgsList.ToList();
         }
     }
 }

@@ -2,6 +2,7 @@
 using henglong.Web.Models;
 using henglong.Web.Common;
 using Aliyun.OSS;
+using SixLabors.ImageSharp;
 
 namespace henglong.Web.Controllers
 {
@@ -23,27 +24,52 @@ namespace henglong.Web.Controllers
 
             _ossClient = new OssClient(endPoint, accessKey, accessSecret);
         }
+
         public IActionResult Index()
         {
             return View();
         }
+
         [HttpPost]
         public async Task<IActionResult> GetImgs([FromBody] QueryVm entity)
         {
-            var imgsList = await _mySqlHelper.GetImagesDataAsync();
-            var totalCount = imgsList.Count;
+            var imgsList =
+                await _mySqlHelper.GetImagesDataAsync((entity.current - 1) * entity.pageSize, entity.pageSize,false);
+            var totalCount = await _mySqlHelper.GetTotalCountImagesDataAsync();
             return Json(new
             {
-                data = imgsList.OrderByDescending(o => o.Level).Skip((entity.current - 1) * entity.pageSize).Take(entity.pageSize),
+                data = imgsList,
                 total = totalCount
             });
         }
+
         [HttpPost]
         public void ExportFile()
         {
             var files = Request.Form.Files;
             foreach (var item in files)
             {
+                using var ms = new MemoryStream();
+                item.CopyTo(ms);
+                ms.Position = 0;
+
+                ImageInfo? imageInfo;
+                try
+                {
+                    imageInfo = Image.Identify(ms) as ImageInfo;
+                }
+                catch
+                {
+                    continue;
+                }
+
+                if (imageInfo == null)
+                    continue;
+
+                int width = imageInfo.Width;
+                int height = imageInfo.Height;
+                decimal percent = width > 0 ? Math.Round((height * 1M / (width * 1M)), 2) : 0;
+
                 var fileGuid = Guid.NewGuid().ToString() + ".jpg";
                 var entity = new ImgesVm
                 {
@@ -58,12 +84,14 @@ namespace henglong.Web.Controllers
                     Density = "",
                     GramWeight = "",
                     Doorframe = "",
-                    Width = 0,
-                    Height = 0,
-                    Percent = 0
+                    Width = width,
+                    Height = height,
+                    Percent = percent
                 };
                 _mySqlHelper.InsertOne(entity);
-                _ossClient.PutObject(_bucketName, fileGuid, item.OpenReadStream());
+
+                ms.Position = 0;
+                _ossClient.PutObject(_bucketName, fileGuid, ms);
                 _ossClient.SetObjectAcl(_bucketName, fileGuid, CannedAccessControlList.PublicRead);
             }
         }
@@ -74,7 +102,6 @@ namespace henglong.Web.Controllers
             var response = _ossClient.GetObject(_bucketName, guid);
             using (var responseStream = response.Content)
             {
-
                 using (var memeryStrem = new MemoryStream())
                 {
                     await responseStream.CopyToAsync(memeryStrem);
@@ -85,21 +112,6 @@ namespace henglong.Web.Controllers
                     return new FileContentResult(fileBytes, "image/jpeg");
                 }
             }
-            /* if (imgList != null)
-            {
-                return new FileContentResult(imgList.ToArray(), "image/jpeg");
-            }
-
-            using (var fileStream = new FileStream(@"C:\Users\Yan\Pictures\GetImg.jpg", FileMode.Open))
-            {
-                byte[] result = new byte[fileStream.Length];
-                await fileStream.ReadAsync(result, 0, (int)fileStream.Length);
-                lock (lockObj)
-                {
-                    imgList = result.ToList();
-                }
-                return new FileContentResult(result, "image/jpeg");
-            }*/
         }
 
         [HttpPost]

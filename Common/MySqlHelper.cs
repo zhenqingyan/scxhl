@@ -46,13 +46,15 @@ namespace henglong.Web.Common
         {
             try
             {
-                var sql = @"INSERT INTO products (Guid, Status, CreateTime, Name, Level, Number, Composition, YarnCount, Density, GramWeight, Doorframe, Width, Height, Percent)
+                var sql =
+                    @"INSERT INTO products (Guid, Status, CreateTime, Name, Level, Number, Composition, YarnCount, Density, GramWeight, Doorframe, Width, Height, Percent)
                             VALUES (@Guid, @Status, @CreateTime, @Name, @Level, @Number, @Composition, @YarnCount, @Density, @GramWeight, @Doorframe, @Width, @Height, @Percent)";
 
                 using (var conn = new MySqlConnection(_connectionString))
                 {
                     conn.Execute(sql, entity);
                 }
+
                 return true;
             }
             catch (Exception)
@@ -61,15 +63,29 @@ namespace henglong.Web.Common
             }
         }
 
-        public async Task<IList<ImgesVm>> GetImagesDataAsync()
+        public async Task<IList<ImgesVm>> GetImagesDataAsync(int startIndex, int endIndex, bool isFilterInvalid)
         {
-            var sql = "SELECT Id, Guid, Status, CreateTime, Name, Level, Number, Composition, YarnCount, Density, GramWeight, Doorframe, Width, Height, Percent FROM products";
-
-            using (var conn = new MySqlConnection(_connectionString))
+            var conditionSql = "";
+            if (isFilterInvalid)
             {
-                var result = await conn.QueryAsync<ImgesVm>(sql);
-                return result.ToList();
+                conditionSql = "where status=1";
             }
+
+            var sql =
+                $"SELECT Id, Guid, Status, CreateTime, Name, Level, Number, Composition, YarnCount, Density, GramWeight, Doorframe, Width, Height, Percent FROM products {conditionSql} order by `Level` desc,`id` asc limit {startIndex},{endIndex} ";
+
+
+            await using var conn = new MySqlConnection(_connectionString);
+            var result = await conn.QueryAsync<ImgesVm>(sql);
+            return result.ToList();
+        }
+
+        public async Task<int> GetTotalCountImagesDataAsync()
+        {
+            var sql = "SELECT count(1) FROM products";
+            await using var conn = new MySqlConnection(_connectionString);
+            var result = await conn.ExecuteScalarAsync<int>(sql);
+            return result;
         }
 
         public bool UpdateStatus(string guid, bool status)
@@ -147,6 +163,5 @@ namespace henglong.Web.Common
                 return false;
             }
         }
-
     }
 }

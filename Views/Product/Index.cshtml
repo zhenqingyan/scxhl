@@ -39,11 +39,11 @@
         <t-loading size="large" text="加载中..." />
     </div>
 
-    <t-row v-else :gutter="[12,12]">
+    <t-row v-else :gutter="[16,16]">
         <t-col
             v-for="item in tableData"
             :key="item.guid"
-            :xs="24" :sm="12" :md="8" :lg="4" :xl="4"
+            :xs="12" :sm="6" :md="3" :lg="3" :xl="3"
         >
             <t-card
                 :bordered="true"
@@ -60,16 +60,16 @@
                     </div>
                 </template>
                 <template #actions>
-                    <t-space :size="4">
-                        <t-tooltip content="保存修改">
+                    <t-space :size="12">
+                        <t-tooltip content="编辑属性">
                             <t-button
-                                variant="text"
+                                variant="outline"
                                 theme="primary"
-                                shape="circle"
-                                size="small"
-                                @@click="saveItem(item)"
+                                size="medium"
+                                @@click="openEditDialog(item)"
                             >
-                                <template #icon><t-icon name="check-circle" /></template>
+                                <template #icon><t-icon name="edit" /></template>
+                                编辑
                             </t-button>
                         </t-tooltip>
                         <t-tooltip content="删除">
@@ -79,18 +79,18 @@
                                 @@confirm="delData(item)"
                             >
                                 <t-button
-                                    variant="text"
+                                    variant="outline"
                                     theme="danger"
-                                    shape="circle"
-                                    size="small"
+                                    size="medium"
                                 >
                                     <template #icon><t-icon name="delete" /></template>
+                                    删除
                                 </t-button>
                             </t-popconfirm>
                         </t-tooltip>
                         <t-switch
                             v-model="item.status"
-                            size="small"
+                            size="large"
                             @@change="changeStatus($event, item)"
                         />
                     </t-space>
@@ -100,7 +100,7 @@
                 <div class="product-img-wrap">
                     <t-image
                         :src="'https://henglong.oss-cn-shanghai.aliyuncs.com/' + item.guid"
-                        :style="{ width: '100%', height: '240px' }"
+                        :style="{ width: '100%', height: '300px' }"
                         fit="contain"
                         :lazy="true"
                     >
@@ -113,115 +113,71 @@
                     </t-image>
                 </div>
 
-                <!-- 属性表单 -->
-                <t-form
-                    :model="item"
-                    label-align="right"
-                    :label-width="56"
-                    colon
-                    style="margin-top:12px"
-                >
+                <!-- 属性展示 -->
+                <div class="item-props-display" style="margin-top:12px">
                     <t-row :gutter="8">
-                        <t-col :span="12">
-                            <t-form-item label="排序" name="level">
-                                <t-input-number
-                                    v-model="item.level"
-                                    placeholder="排序"
-                                    :min="1"
-                                    size="small"
-                                    style="width:100%"
-                                />
-                            </t-form-item>
+                        <t-col :span="6">
+                            <div class="prop-display-item">
+                                <div class="prop-label">排序</div>
+                                <div class="prop-value">{{ item.level }}</div>
+                            </div>
                         </t-col>
-                        <t-col :span="12">
-                            <t-form-item label="编号" name="number">
-                                <t-input
-                                    v-model="item.number"
-                                    placeholder="编号"
-                                    size="small"
-                                />
-                            </t-form-item>
+                        <t-col :span="6">
+                            <div class="prop-display-item">
+                                <div class="prop-label">编号</div>
+                                <div class="prop-value">{{ item.number || '-' }}</div>
+                            </div>
                         </t-col>
-                        <t-col :span="12">
-                            <t-form-item label="成份" name="composition">
-                                <t-input
-                                    v-model="item.composition"
-                                    placeholder="成份"
-                                    size="small"
-                                />
-                            </t-form-item>
+                        <t-col :span="6">
+                            <div class="prop-display-item">
+                                <div class="prop-label">成份</div>
+                                <div class="prop-value">{{ item.composition || '-' }}</div>
+                            </div>
                         </t-col>
-                        <t-col :span="12">
-                            <t-form-item label="纱支" name="yarnCount">
-                                <t-input
-                                    v-model="item.yarnCount"
-                                    placeholder="纱支"
-                                    size="small"
-                                />
-                            </t-form-item>
+                        <t-col :span="6">
+                            <div class="prop-display-item">
+                                <div class="prop-label">纱支</div>
+                                <div class="prop-value">{{ item.yarnCount || '-' }}</div>
+                            </div>
                         </t-col>
-                        <t-col :span="12">
-                            <t-form-item label="密度" name="density">
-                                <t-input
-                                    v-model="item.density"
-                                    placeholder="密度"
-                                    size="small"
-                                />
-                            </t-form-item>
+                        <t-col :span="6">
+                            <div class="prop-display-item">
+                                <div class="prop-label">密度</div>
+                                <div class="prop-value">{{ item.density || '-' }}</div>
+                            </div>
                         </t-col>
-                        <t-col :span="12">
-                            <t-form-item label="克重" name="gramWeight">
-                                <t-input
-                                    v-model="item.gramWeight"
-                                    placeholder="克重"
-                                    size="small"
-                                />
-                            </t-form-item>
+                        <t-col :span="6">
+                            <div class="prop-display-item">
+                                <div class="prop-label">克重</div>
+                                <div class="prop-value">{{ item.gramWeight || '-' }}</div>
+                            </div>
                         </t-col>
-                        <t-col :span="12">
-                            <t-form-item label="门幅" name="doorframe">
-                                <t-input
-                                    v-model="item.doorframe"
-                                    placeholder="门幅"
-                                    size="small"
-                                />
-                            </t-form-item>
+                        <t-col :span="6">
+                            <div class="prop-display-item">
+                                <div class="prop-label">门幅</div>
+                                <div class="prop-value">{{ item.doorframe || '-' }}</div>
+                            </div>
                         </t-col>
-                        <t-col :span="12">
-                            <t-form-item label="宽度" name="width">
-                                <t-input-number
-                                    v-model="item.width"
-                                    placeholder="宽度"
-                                    :min="0"
-                                    size="small"
-                                    style="width:100%"
-                                />
-                            </t-form-item>
+                        <t-col :span="6">
+                            <div class="prop-display-item">
+                                <div class="prop-label">宽</div>
+                                <div class="prop-value">{{ item.width }}</div>
+                            </div>
                         </t-col>
-                        <t-col :span="12">
-                            <t-form-item label="高度" name="height">
-                                <t-input-number
-                                    v-model="item.height"
-                                    placeholder="高度"
-                                    :min="0"
-                                    size="small"
-                                    style="width:100%"
-                                />
-                            </t-form-item>
+                        <t-col :span="6">
+                            <div class="prop-display-item">
+                                <div class="prop-label">高</div>
+                                <div class="prop-value">{{ item.height }}</div>
+                            </div>
                         </t-col>
-                        <t-col :span="12">
-                            <t-form-item label="比例" name="percent">
-                                <t-input
-                                    :value="item.percent"
-                                    placeholder="自动计算"
-                                    size="small"
-                                    readonly
-                                    style="background:#f5f6fa"
-                                />
-                            </t-form-item>
+                        <t-col :span="6">
+                            <div class="prop-display-item">
+                                <div class="prop-label">比例</div>
+                                <div class="prop-value">{{ item.percent }}</div>
+                            </div>
                         </t-col>
                     </t-row>
-                </t-form>
+                </div>
 
                 <!-- 底部信息 -->
                 <t-divider style="margin:8px 0" />
@@ -243,29 +199,10 @@
             </t-card>
         </t-col>
     </t-row>
-
-    <!-- 空状态 -->
-    <t-empty
-        v-if="!loading && tableData.length === 0"
-        title="暂无产品数据"
-        description="请点击上传图片添加产品"
-        style="padding:60px 0"
-    />
-
-    <!-- 分页 -->
-    <div v-if="!loading && pageData.total > 0" class="pagination-wrap">
-        <t-pagination
-            v-model="pageData.current"
-            :total="pageData.total"
-            :page-size="pageData.pageSize"
-            show-jumper
-            show-page-size
-            :page-size-options="[9, 18, 27]"
-            @@change="onPageChange"
-            @@page-size-change="onPageSizeChange"
-        />
-    </div>
 </div>
+
+<!-- 分页容器（纯DOM渲染，放在Vue挂载区域外） -->
+<div id="pagination-container"></div>
 
 <style>
 .product-card {
@@ -275,10 +212,10 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    max-width: 160px;
+    max-width: 120px;
 }
 .card-title-text {
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 600;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -297,7 +234,7 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    height: 180px;
+    height: 280px;
     color: #bbb;
     gap: 8px;
     font-size: 12px;
@@ -311,17 +248,24 @@
     font-size: 11px;
     color: #999;
 }
-.pagination-wrap {
-    display: flex;
-    justify-content: center;
-    margin-top: 24px;
-    padding: 16px 0;
-    background: #fff;
-    border-radius: 8px;
+/* 属性展示区域 */
+.item-props-display {
+    background: #f5f6fa;
+    border-radius: 6px;
+    padding: 12px;
 }
-/* TDesign 表单间距优化 */
-.t-form .t-form__item {
-    margin-bottom: 6px !important;
+.prop-display-item {
+    margin-bottom: 8px;
+}
+.prop-label {
+    font-size: 11px;
+    color: #999;
+    margin-bottom: 2px;
+}
+.prop-value {
+    font-size: 13px;
+    color: #333;
+    font-weight: 500;
 }
 </style>
 
