@@ -1,0 +1,19 @@
+services:
+  web:
+    build: .
+    container_name: henglong-web
+    ports:
+      - "8080:8080"
+    environment:
+      - ConnectionStrings__MySql=${ConnectionStrings__MySql}
+      - AliyunOss__EndPoint=${AliyunOss__EndPoint}
+      - AliyunOss__AccessKey=${AliyunOss__AccessKey}
+      - AliyunOss__AccessSecret=${AliyunOss__AccessSecret}
+      - AliyunOss__BucketName=${AliyunOss__BucketName}
+      - DISABLE_HTTPS=${DISABLE_HTTPS:-true}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/healthz"]
+      interval: 30s
+      timeout: 5s
+      retries: 3

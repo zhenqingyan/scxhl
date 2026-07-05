@@ -6,5 +6,8 @@ wwwroot/upload/
 # Local settings with secrets
 appsettings.*.local.json
 secrets.json
+setup-secrets.bat
+.env
 .codegraph/
 .claude/
+*.DotSettings.user

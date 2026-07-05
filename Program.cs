@@ -17,13 +17,18 @@ using (var scope = app.Services.CreateScope())
     helper?.EnsureTableCreated();
 }
 
-if (!app.Environment.IsDevelopment())
+var disableHttps = builder.Configuration.GetValue<bool>("DISABLE_HTTPS");
+
+if (!app.Environment.IsDevelopment() && !disableHttps)
 {
     app.UseExceptionHandler("/Home/Error");
     app.UseHsts();
 }
 
-app.UseHttpsRedirection();
+if (!disableHttps)
+{
+    app.UseHttpsRedirection();
+}
 app.UseStaticFiles();
 app.UseRouting();
 app.UseAuthorization();
