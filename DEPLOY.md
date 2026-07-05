@@ -43,7 +43,7 @@ DISABLE_HTTPS=true
 ### 4. 启动
 
 ```bash
-docker-compose up -d
+docker compose up -d
 ```
 
 ### 5. 验证
@@ -62,16 +62,16 @@ curl http://localhost:8080/
 
 ```bash
 # 查看日志
-docker-compose logs -f
+docker compose logs -f
 
 # 重启
-docker-compose restart
+docker compose restart
 
 # 停止
-docker-compose down
+docker compose down
 
 # 重新构建（代码更新后）
-docker-compose up -d --build
+docker compose up -d --build
 ```
 
 ## 更新代码
@@ -81,7 +81,7 @@ docker-compose up -d --build
 ```bash
 cd /opt/henglong
 git pull
-docker-compose up -d --build
+docker compose up -d --build
 ```
 
 `--build` 会重新构建镜像，旧容器自动替换，**`.env` 配置不会丢失**。
@@ -112,7 +112,7 @@ server {
 | 文件 | 用途 | 是否提交 git |
 |------|------|:---:|
 | `Dockerfile` | 镜像构建定义 | ✅ |
-| `docker-compose.yml` | 服务编排，引用 `.env` | ✅ |
+| `docker compose.yml` | 服务编排，引用 `.env` | ✅ |
 | `.env.example` | 环境变量模板 | ✅ |
 | `.env` | 真实密钥，容器启动时读取 | ❌ |
 | `.dockerignore` | Docker 构建时排除的文件 | ✅ |
