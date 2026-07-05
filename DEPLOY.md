@@ -74,6 +74,18 @@ docker-compose down
 docker-compose up -d --build
 ```
 
+## 更新代码
+
+本地修改推送到 git 后，在服务器上执行：
+
+```bash
+cd /opt/henglong
+git pull
+docker-compose up -d --build
+```
+
+`--build` 会重新构建镜像，旧容器自动替换，**`.env` 配置不会丢失**。
+
 ## 配置 Nginx 反向代理（可选）
 
 ```nginx
