@@ -1,6 +1,6 @@
 namespace henglong.Web.Models
 {
-    public class ImgesVm
+    public class ImagesVm
     {
         public int Id { get; set; }
         public string Guid { get; set; } = string.Empty;

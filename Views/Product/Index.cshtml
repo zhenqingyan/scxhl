@@ -1,4 +1,4 @@
-﻿@{
+@{
     ViewData["Title"] = "产品管理";
 }
 
@@ -10,7 +10,7 @@
                 <t-space>
                     <t-upload
                         :action="uploadUrl"
-                        accept=".jpg,.jpeg,.png"
+                        accept=".jpg,.jpeg,.png,.webp"
                         :multiple="true"
                         :show-upload-progress="true"
                         theme="file-input"
@@ -34,9 +34,28 @@
         </t-row>
     </t-card>
 
+    <!-- 分页（上方） -->
+    <t-card :bordered="false" style="margin-bottom:16px" v-if="pageData.total > 0">
+        <t-row justify="center">
+            <t-pagination
+                v-model="pageData.current"
+                :total="pageData.total"
+                :page-size="pageData.pageSize"
+                :page-size-options="[9, 18, 27]"
+                show-jumper
+                @@change="onPageChange"
+            />
+        </t-row>
+    </t-card>
+
     <!-- 产品卡片列表 -->
     <div v-if="loading" style="text-align:center;padding:60px 0">
         <t-loading size="large" text="加载中..." />
+    </div>
+
+    <div v-else-if="tableData.length === 0" style="text-align:center;padding:60px 0">
+        <t-icon name="inbox" size="48px" style="color:#ccc" />
+        <p style="color:#999;margin-top:12px">暂无产品数据</p>
     </div>
 
     <t-row v-else :gutter="[16,16]">
@@ -199,10 +218,47 @@
             </t-card>
         </t-col>
     </t-row>
-</div>
 
-<!-- 分页容器（纯DOM渲染，放在Vue挂载区域外） -->
-<div id="pagination-container"></div>
+    <!-- 编辑对话框 -->
+    <t-dialog
+        v-model:visible="editDialogVisible"
+        header="编辑产品属性"
+        width="620px"
+        :confirm-btn="{ content: '确认', theme: 'primary', loading: editSaving }"
+        :cancel-btn="{ content: '取消' }"
+        @@confirm="saveEdit"
+        @@close="editDialogVisible = false"
+    >
+        <t-row :gutter="[16,12]">
+            <t-col :span="4" v-for="f in editFields" :key="f.key">
+                <div class="edit-field">
+                    <label class="edit-label">{{ f.label }}</label>
+                    <t-input
+                        v-model="editForm[f.key]"
+                        :type="f.type === 'number' ? 'number' : 'text'"
+                        :disabled="f.readonly"
+                        :placeholder="f.label"
+                        size="medium"
+                    />
+                </div>
+            </t-col>
+        </t-row>
+    </t-dialog>
+
+    <!-- 底部分页 -->
+    <t-card :bordered="false" style="margin-top:16px" v-if="tableData.length > 0 && pageData.total > pageData.pageSize">
+        <t-row justify="center">
+            <t-pagination
+                v-model="pageData.current"
+                :total="pageData.total"
+                :page-size="pageData.pageSize"
+                :page-size-options="[9, 18, 27]"
+                show-jumper
+                @@change="onPageChange"
+            />
+        </t-row>
+    </t-card>
+</div>
 
 <style>
 .product-card {
@@ -266,6 +322,16 @@
     font-size: 13px;
     color: #333;
     font-weight: 500;
+}
+/* 编辑对话框 */
+.edit-field {
+    margin-bottom: 4px;
+}
+.edit-label {
+    display: block;
+    font-size: 12px;
+    color: #666;
+    margin-bottom: 4px;
 }
 </style>
 

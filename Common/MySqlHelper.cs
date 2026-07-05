@@ -7,10 +7,12 @@ namespace henglong.Web.Common
     public class MySqlHelper : IMySqlHelper
     {
         private readonly string _connectionString;
+        private readonly ILogger<MySqlHelper> _logger;
 
-        public MySqlHelper(IConfiguration configuration)
+        public MySqlHelper(IConfiguration configuration, ILogger<MySqlHelper> logger)
         {
             _connectionString = configuration.GetConnectionString("MySql") ?? string.Empty;
+            _logger = logger;
         }
 
         public void EnsureTableCreated()
@@ -36,13 +38,11 @@ namespace henglong.Web.Common
                   UNIQUE KEY `uk_guid` (`Guid`)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
 
-            using (var conn = new MySqlConnection(_connectionString))
-            {
-                conn.Execute(sql);
-            }
+            using var conn = new MySqlConnection(_connectionString);
+            conn.Execute(sql);
         }
 
-        public bool InsertOne(ImgesVm entity)
+        public bool InsertOne(ImagesVm entity)
         {
             try
             {
@@ -50,41 +50,38 @@ namespace henglong.Web.Common
                     @"INSERT INTO products (Guid, Status, CreateTime, Name, Level, Number, Composition, YarnCount, Density, GramWeight, Doorframe, Width, Height, Percent)
                             VALUES (@Guid, @Status, @CreateTime, @Name, @Level, @Number, @Composition, @YarnCount, @Density, @GramWeight, @Doorframe, @Width, @Height, @Percent)";
 
-                using (var conn = new MySqlConnection(_connectionString))
-                {
-                    conn.Execute(sql, entity);
-                }
-
+                using var conn = new MySqlConnection(_connectionString);
+                conn.Execute(sql, entity);
                 return true;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                _logger.LogError(ex, "Failed to insert product {Guid}", entity.Guid);
                 return false;
             }
         }
 
-        public async Task<IList<ImgesVm>> GetImagesDataAsync(int startIndex, int endIndex, bool isFilterInvalid)
+        public async Task<IList<ImagesVm>> GetImagesDataAsync(int offset, int limit, bool isFilterInvalid, CancellationToken ct = default)
         {
             var conditionSql = "";
             if (isFilterInvalid)
             {
-                conditionSql = "where status=1";
+                conditionSql = "WHERE status=1";
             }
 
             var sql =
-                $"SELECT Id, Guid, Status, CreateTime, Name, Level, Number, Composition, YarnCount, Density, GramWeight, Doorframe, Width, Height, Percent FROM products {conditionSql} order by `Level` desc,`id` asc limit {startIndex},{endIndex} ";
-
+                $"SELECT Id, Guid, Status, CreateTime, Name, Level, Number, Composition, YarnCount, Density, GramWeight, Doorframe, Width, Height, Percent FROM products {conditionSql} ORDER BY `Level` DESC, `Id` ASC LIMIT @Offset, @Limit";
 
             await using var conn = new MySqlConnection(_connectionString);
-            var result = await conn.QueryAsync<ImgesVm>(sql);
+            var result = await conn.QueryAsync<ImagesVm>(new CommandDefinition(sql, new { Offset = offset, Limit = limit }, cancellationToken: ct));
             return result.ToList();
         }
 
-        public async Task<int> GetTotalCountImagesDataAsync()
+        public async Task<int> GetTotalCountImagesDataAsync(CancellationToken ct = default)
         {
-            var sql = "SELECT count(1) FROM products";
+            var sql = "SELECT COUNT(1) FROM products";
             await using var conn = new MySqlConnection(_connectionString);
-            var result = await conn.ExecuteScalarAsync<int>(sql);
+            var result = await conn.ExecuteScalarAsync<int>(new CommandDefinition(sql, cancellationToken: ct));
             return result;
         }
 
@@ -94,72 +91,68 @@ namespace henglong.Web.Common
             {
                 var sql = "UPDATE products SET Status = @Status WHERE Guid = @Guid";
 
-                using (var conn = new MySqlConnection(_connectionString))
-                {
-                    var rows = conn.Execute(sql, new { Guid = guid, Status = status });
-                    return rows > 0;
-                }
+                using var conn = new MySqlConnection(_connectionString);
+                var rows = conn.Execute(sql, new { Guid = guid, Status = status });
+                return rows > 0;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                _logger.LogError(ex, "Failed to update status for product {Guid}", guid);
                 return false;
             }
         }
 
-        public async Task<bool> UpdateLevelAsync(UpdateLevelVm param)
+        public async Task<bool> UpdateLevelAsync(UpdateLevelVm param, CancellationToken ct = default)
         {
             try
             {
-                var sql = @"UPDATE products 
-                            SET Level = @level, Number = @number, Composition = @composition, 
-                                YarnCount = @yarnCount, Density = @density, GramWeight = @gramWeight, 
-                                Doorframe = @doorframe, Width = @width, Height = @height, Percent = @percent 
+                var sql = @"UPDATE products
+                            SET Level = @level, Number = @number, Composition = @composition,
+                                YarnCount = @yarnCount, Density = @density, GramWeight = @gramWeight,
+                                Doorframe = @doorframe, Width = @width, Height = @height, Percent = @percent
                             WHERE Guid = @guid";
 
-                using (var conn = new MySqlConnection(_connectionString))
-                {
-                    var rows = await conn.ExecuteAsync(sql, param);
-                    return rows == 1;
-                }
+                using var conn = new MySqlConnection(_connectionString);
+                var rows = await conn.ExecuteAsync(new CommandDefinition(sql, param, cancellationToken: ct));
+                return rows == 1;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                _logger.LogError(ex, "Failed to update level for product {Guid}", param.guid);
                 return false;
             }
         }
 
-        public async Task<bool> UpdateSizeAsync(UpdateSizeVm param)
+        public async Task<bool> UpdateSizeAsync(UpdateSizeVm param, CancellationToken ct = default)
         {
             try
             {
                 var sql = "UPDATE products SET Width = @width, Height = @height, Percent = @percent WHERE Guid = @guid";
 
-                using (var conn = new MySqlConnection(_connectionString))
-                {
-                    var rows = await conn.ExecuteAsync(sql, param);
-                    return rows == 1;
-                }
+                using var conn = new MySqlConnection(_connectionString);
+                var rows = await conn.ExecuteAsync(new CommandDefinition(sql, param, cancellationToken: ct));
+                return rows == 1;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                _logger.LogError(ex, "Failed to update size for product {Guid}", param.guid);
                 return false;
             }
         }
 
-        public async Task<bool> DeleteOneAsync(string guid)
+        public async Task<bool> DeleteOneAsync(string guid, CancellationToken ct = default)
         {
             try
             {
                 var sql = "DELETE FROM products WHERE Guid = @Guid";
 
-                using (var conn = new MySqlConnection(_connectionString))
-                {
-                    var rows = await conn.ExecuteAsync(sql, new { Guid = guid });
-                    return rows == 1;
-                }
+                using var conn = new MySqlConnection(_connectionString);
+                var rows = await conn.ExecuteAsync(new CommandDefinition(sql, new { Guid = guid }, cancellationToken: ct));
+                return rows == 1;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                _logger.LogError(ex, "Failed to delete product {Guid}", guid);
                 return false;
             }
         }

@@ -3,3 +3,8 @@ obj/
 wwwroot/upload/
 .vs/
 .idea/
+# Local settings with secrets
+appsettings.*.local.json
+secrets.json
+.codegraph/
+.claude/
