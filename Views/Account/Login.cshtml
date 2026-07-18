@@ -1,0 +1,75 @@
+@model henglong.Web.Models.AdminLoginVm
+@{
+    ViewData["Title"] = "后台登录";
+}
+
+<div id="login-app" class="login-shell">
+    <t-card :bordered="false" class="login-card">
+        <div class="login-title">恒隆面料管理系统</div>
+        <div class="login-subtitle">后台登录</div>
+        <form method="post" action="/Account/Login">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="ReturnUrl" value="@Model.ReturnUrl" />
+            <div class="login-field">
+                <label>用户名</label>
+                <t-input name="Username" default-value="@Model.Username" placeholder="请输入用户名" clearable />
+            </div>
+            <div class="login-field">
+                <label>密码</label>
+                <t-input name="Password" type="password" placeholder="请输入密码" clearable />
+            </div>
+            @if (!ViewData.ModelState.IsValid)
+            {
+                <t-alert theme="error" message="@ViewData.ModelState[string.Empty]?.Errors.FirstOrDefault()?.ErrorMessage" />
+            }
+            <t-button theme="primary" type="submit" block>登录</t-button>
+        </form>
+    </t-card>
+</div>
+
+<style>
+.login-shell {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: calc(100vh - 104px);
+}
+.login-card {
+    width: 100%;
+    max-width: 380px;
+    border-radius: 8px;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+}
+.login-title {
+    font-size: 20px;
+    font-weight: 700;
+    color: #1f2329;
+    text-align: center;
+}
+.login-subtitle {
+    margin: 8px 0 24px;
+    font-size: 14px;
+    color: #86909c;
+    text-align: center;
+}
+.login-field {
+    margin-bottom: 16px;
+}
+.login-field label {
+    display: block;
+    margin-bottom: 6px;
+    font-size: 13px;
+    color: #4e5969;
+}
+.t-alert {
+    margin-bottom: 16px;
+}
+</style>
+
+@section Scripts {
+    <script>
+        const loginApp = Vue.createApp({});
+        loginApp.use(TDesign);
+        loginApp.mount('#login-app');
+    </script>
+}

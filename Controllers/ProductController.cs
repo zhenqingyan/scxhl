@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using henglong.Web.Models;
 using henglong.Web.Common;
@@ -6,6 +7,7 @@ using SixLabors.ImageSharp;
 
 namespace henglong.Web.Controllers
 {
+    [Authorize]
     public class ProductController : Controller
     {
         private readonly IMySqlHelper _mySqlHelper;

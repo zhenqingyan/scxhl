@@ -54,6 +54,35 @@
             min-height: calc(100vh - 56px);
             padding: 24px;
         }
+        .app-header-actions {
+            margin-left: auto;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .logout-button {
+            border: 1px solid rgba(255,255,255,0.7);
+            border-radius: 6px;
+            background: transparent;
+            color: #fff;
+            cursor: pointer;
+            font: inherit;
+            font-size: 14px;
+            line-height: 20px;
+            padding: 5px 13px;
+        }
+        .logout-button:hover {
+            background: rgba(255,255,255,0.18);
+        }
+        .reset-field {
+            margin-bottom: 14px;
+        }
+        .reset-field label {
+            display: block;
+            margin-bottom: 6px;
+            font-size: 13px;
+            color: #4e5969;
+        }
     </style>
 </head>
 <body>
@@ -62,11 +91,51 @@
         <nav class="app-header-nav">
             <a href="/" class="@(ViewContext.RouteData.Values["controller"]?.ToString() == "Home" ? "active" : "")">首页</a>
             <a href="/Product" class="@(ViewContext.RouteData.Values["controller"]?.ToString() == "Product" ? "active" : "")">产品管理</a>
+            <a href="/Order" class="@(ViewContext.RouteData.Values["controller"]?.ToString() == "Order" ? "active" : "")">订单管理</a>
         </nav>
+        @if (User.Identity?.IsAuthenticated == true)
+        {
+            var isSuperAdmin = User.FindFirst(henglong.Web.Models.AdminClaimTypes.AdminType)?.Value == henglong.Web.Models.AdminIdentityTypes.Super;
+            <div class="app-header-actions">
+                @if (isSuperAdmin)
+                {
+                    <div id="admin-layout-app" data-super-admin="true">
+                        <t-button theme="default" variant="outline" @@click="openReset">
+                            <template #icon><t-icon name="setting" /></template>
+                            重置管理员密码
+                        </t-button>
+                        <t-dialog
+                            v-model:visible="resetVisible"
+                            header="重置数据库管理员密码"
+                            :confirm-btn="{ content: '确认', theme: 'primary', loading: saving }"
+                            :cancel-btn="{ content: '取消' }"
+                            @@confirm="submitReset"
+                        >
+                            <div class="reset-field">
+                                <label>管理员用户名</label>
+                                <t-input v-model="form.username" placeholder="请输入数据库管理员用户名" />
+                            </div>
+                            <div class="reset-field">
+                                <label>新密码</label>
+                                <t-input v-model="form.newPassword" type="password" placeholder="请输入新密码" />
+                            </div>
+                        </t-dialog>
+                    </div>
+                }
+                <form method="post" action="/Account/Logout">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="logout-button">退出登录</button>
+                </form>
+            </div>
+        }
     </header>
     <main class="app-main">
         @RenderBody()
     </main>
+    @if (User.Identity?.IsAuthenticated == true)
+    {
+        <script src="~/js/admin-layout.js"></script>
+    }
     @RenderSection("Scripts", required: false)
 </body>
 </html>
