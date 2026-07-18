@@ -92,6 +92,10 @@
             <a href="/" class="@(ViewContext.RouteData.Values["controller"]?.ToString() == "Home" ? "active" : "")">首页</a>
             <a href="/Product" class="@(ViewContext.RouteData.Values["controller"]?.ToString() == "Product" ? "active" : "")">产品管理</a>
             <a href="/Order" class="@(ViewContext.RouteData.Values["controller"]?.ToString() == "Order" ? "active" : "")">订单管理</a>
+            @if (User.FindFirst(henglong.Web.Models.AdminClaimTypes.AdminType)?.Value == henglong.Web.Models.AdminIdentityTypes.Super)
+            {
+                <a href="/AdminUsers" class="@(ViewContext.RouteData.Values["controller"]?.ToString() == "AdminUsers" ? "active" : "")">登录用户</a>
+            }
         </nav>
         @if (User.Identity?.IsAuthenticated == true)
         {

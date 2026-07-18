@@ -1,0 +1,93 @@
+@{
+    ViewData["Title"] = "登录用户管理";
+}
+
+<div id="admin-users-app">
+    <t-card :bordered="false" style="margin-bottom:16px">
+        <t-row :gutter="16" align="middle">
+            <t-col :span="8">
+                <t-space>
+                    <t-button theme="primary" @@click="openCreate">
+                        <template #icon><t-icon name="add" /></template>
+                        新增管理员
+                    </t-button>
+                    <t-button theme="primary" variant="outline" @@click="queryData" :loading="loading">
+                        <template #icon><t-icon name="refresh" /></template>
+                        刷新
+                    </t-button>
+                </t-space>
+            </t-col>
+            <t-col :span="4" style="text-align:right">
+                <span style="color:#999;font-size:13px">共 {{ users.length }} 个账号</span>
+            </t-col>
+        </t-row>
+    </t-card>
+
+    <t-card :bordered="false">
+        <div v-if="loading" style="text-align:center;padding:56px 0">
+            <t-loading size="large" text="加载中..." />
+        </div>
+        <div v-else-if="users.length === 0" style="text-align:center;padding:56px 0">
+            <t-icon name="user" size="48px" style="color:#ccc" />
+            <p style="color:#999;margin-top:12px">暂无数据库管理员账号</p>
+        </div>
+        <t-table
+            v-else
+            row-key="username"
+            :data="users"
+            :columns="columns"
+            :pagination="null"
+            stripe
+        />
+    </t-card>
+
+    <t-dialog
+        v-model:visible="createVisible"
+        header="新增数据库管理员"
+        :confirm-btn="{ content: '确认', theme: 'primary', loading: saving }"
+        :cancel-btn="{ content: '取消' }"
+        @@confirm="submitCreate"
+    >
+        <div class="admin-user-field">
+            <label>用户名</label>
+            <t-input v-model="createForm.username" placeholder="请输入管理员用户名" />
+        </div>
+        <div class="admin-user-field">
+            <label>密码</label>
+            <t-input v-model="createForm.password" type="password" placeholder="请输入密码" />
+        </div>
+    </t-dialog>
+
+    <t-dialog
+        v-model:visible="resetVisible"
+        header="重置数据库管理员密码"
+        :confirm-btn="{ content: '确认', theme: 'primary', loading: saving }"
+        :cancel-btn="{ content: '取消' }"
+        @@confirm="submitReset"
+    >
+        <div class="admin-user-field">
+            <label>用户名</label>
+            <t-input v-model="resetForm.username" disabled />
+        </div>
+        <div class="admin-user-field">
+            <label>新密码</label>
+            <t-input v-model="resetForm.newPassword" type="password" placeholder="请输入新密码" />
+        </div>
+    </t-dialog>
+</div>
+
+<style>
+.admin-user-field {
+    margin-bottom: 14px;
+}
+.admin-user-field label {
+    display: block;
+    margin-bottom: 6px;
+    font-size: 13px;
+    color: #4e5969;
+}
+</style>
+
+@@section Scripts {
+    <script src="~/js/admin-users.js"></script>
+}

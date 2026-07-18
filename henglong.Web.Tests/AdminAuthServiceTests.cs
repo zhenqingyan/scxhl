@@ -176,10 +176,22 @@ public class AdminAuthServiceTests
 
         public void EnsureTableCreated() { }
 
+        public Task<IReadOnlyList<AdminUser>> GetAllAsync(CancellationToken ct = default)
+        {
+            return Task.FromResult<IReadOnlyList<AdminUser>>(Users.Values.ToList());
+        }
+
         public Task<AdminUser?> GetByUsernameAsync(string username, CancellationToken ct = default)
         {
             Users.TryGetValue(username, out var user);
             return Task.FromResult(user);
+        }
+
+        public Task<bool> CreateAsync(AdminUser admin, CancellationToken ct = default)
+        {
+            if (Users.ContainsKey(admin.Username)) return Task.FromResult(false);
+            Users[admin.Username] = admin;
+            return Task.FromResult(true);
         }
 
         public Task UpdateLastLoginTimeAsync(int id, CancellationToken ct = default)
@@ -193,6 +205,13 @@ public class AdminAuthServiceTests
             if (!Users.TryGetValue(username, out var user)) return Task.FromResult(false);
             user.PasswordHash = passwordHash;
             user.UpdateTime = DateTime.Now;
+            return Task.FromResult(true);
+        }
+
+        public Task<bool> SetEnabledAsync(string username, bool isEnabled, CancellationToken ct = default)
+        {
+            if (!Users.TryGetValue(username, out var user)) return Task.FromResult(false);
+            user.IsEnabled = isEnabled;
             return Task.FromResult(true);
         }
     }

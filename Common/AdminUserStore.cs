@@ -34,6 +34,16 @@ namespace henglong.Web.Common
             conn.Execute(sql);
         }
 
+        public async Task<IReadOnlyList<AdminUser>> GetAllAsync(CancellationToken ct = default)
+        {
+            const string sql = @"SELECT Id, Username, PasswordHash, IsEnabled, CreateTime, UpdateTime, LastLoginTime
+                                 FROM admin_users
+                                 ORDER BY Id ASC";
+            await using var conn = new MySqlConnection(_connectionString);
+            var users = await conn.QueryAsync<AdminUser>(new CommandDefinition(sql, cancellationToken: ct));
+            return users.ToList();
+        }
+
         public async Task<AdminUser?> GetByUsernameAsync(string username, CancellationToken ct = default)
         {
             const string sql = @"SELECT Id, Username, PasswordHash, IsEnabled, CreateTime, UpdateTime, LastLoginTime
@@ -45,6 +55,25 @@ namespace henglong.Web.Common
                 sql,
                 new { Username = username },
                 cancellationToken: ct));
+        }
+
+        public async Task<bool> CreateAsync(AdminUser admin, CancellationToken ct = default)
+        {
+            const string sql = @"INSERT IGNORE INTO admin_users (Username, PasswordHash, IsEnabled, CreateTime, UpdateTime)
+                                 VALUES (@Username, @PasswordHash, @IsEnabled, @CreateTime, @UpdateTime)";
+            await using var conn = new MySqlConnection(_connectionString);
+            var rows = await conn.ExecuteAsync(new CommandDefinition(
+                sql,
+                new
+                {
+                    admin.Username,
+                    admin.PasswordHash,
+                    admin.IsEnabled,
+                    admin.CreateTime,
+                    admin.UpdateTime
+                },
+                cancellationToken: ct));
+            return rows > 0;
         }
 
         public async Task UpdateLastLoginTimeAsync(int id, CancellationToken ct = default)
@@ -67,6 +96,20 @@ namespace henglong.Web.Common
             var rows = await conn.ExecuteAsync(new CommandDefinition(
                 sql,
                 new { Username = username, PasswordHash = passwordHash, UpdateTime = DateTime.Now },
+                cancellationToken: ct));
+            return rows > 0;
+        }
+
+        public async Task<bool> SetEnabledAsync(string username, bool isEnabled, CancellationToken ct = default)
+        {
+            const string sql = @"UPDATE admin_users
+                                 SET IsEnabled = @IsEnabled,
+                                     UpdateTime = @UpdateTime
+                                 WHERE Username = @Username";
+            await using var conn = new MySqlConnection(_connectionString);
+            var rows = await conn.ExecuteAsync(new CommandDefinition(
+                sql,
+                new { Username = username, IsEnabled = isEnabled, UpdateTime = DateTime.Now },
                 cancellationToken: ct));
             return rows > 0;
         }

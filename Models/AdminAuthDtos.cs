@@ -13,6 +13,28 @@ namespace henglong.Web.Models
         public string NewPassword { get; set; } = string.Empty;
     }
 
+    public class AdminUserCreateVm
+    {
+        public string Username { get; set; } = string.Empty;
+        public string Password { get; set; } = string.Empty;
+    }
+
+    public class AdminUserStatusVm
+    {
+        public string Username { get; set; } = string.Empty;
+        public bool IsEnabled { get; set; }
+    }
+
+    public class AdminUserListItemDto
+    {
+        public int Id { get; set; }
+        public string Username { get; set; } = string.Empty;
+        public bool IsEnabled { get; set; }
+        public DateTime CreateTime { get; set; }
+        public DateTime UpdateTime { get; set; }
+        public DateTime? LastLoginTime { get; set; }
+    }
+
     public class AdminAuthResult
     {
         public bool Succeeded { get; init; }
