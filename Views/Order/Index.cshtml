@@ -1,0 +1,183 @@
+@{
+    ViewData["Title"] = "订单管理";
+}
+
+<div id="order-app">
+    <t-card :bordered="false" style="margin-bottom:16px">
+        <t-row :gutter="16" align="middle">
+            <t-col :span="8">
+                <t-space>
+                    <t-select v-model="statusFilter" style="width:180px" @@change="onStatusChange">
+                        <t-option
+                            v-for="item in statusOptions"
+                            :key="item.value"
+                            :value="item.value"
+                            :label="item.label"
+                        />
+                    </t-select>
+                    <t-button theme="primary" @@click="queryData" :loading="loading">
+                        <template #icon><t-icon name="refresh" /></template>
+                        刷新列表
+                    </t-button>
+                </t-space>
+            </t-col>
+            <t-col :span="4" style="text-align:right">
+                <span style="color:#999;font-size:13px">共 {{ pageData.total }} 条订单</span>
+            </t-col>
+        </t-row>
+    </t-card>
+
+    <t-card :bordered="false">
+        <div v-if="loading" style="text-align:center;padding:56px 0">
+            <t-loading size="large" text="加载中..." />
+        </div>
+
+        <div v-else-if="tableData.length === 0" style="text-align:center;padding:56px 0">
+            <t-icon name="inbox" size="48px" style="color:#ccc" />
+            <p style="color:#999;margin-top:12px">暂无订单数据</p>
+        </div>
+
+        <div v-else class="order-list">
+            <t-card
+                v-for="item in tableData"
+                :key="item.id"
+                :bordered="true"
+                class="order-card"
+            >
+                <t-row :gutter="[16,12]" align="top">
+                    <t-col :xs="12" :md="4">
+                        <div class="order-id">{{ item.id }}</div>
+                        <div class="order-meta">用户：{{ item.userId }}</div>
+                        <div class="order-meta">创建：{{ formatTime(item.createTime) }}</div>
+                    </t-col>
+                    <t-col :xs="12" :md="3">
+                        <t-tag :theme="statusTheme(item.status)" variant="light">{{ statusLabel(item.status) }}</t-tag>
+                        <div class="order-total">￥{{ formatMoney(item.total) }}</div>
+                        <div class="order-meta">商品 {{ item.items.length }} 件</div>
+                    </t-col>
+                    <t-col :xs="12" :md="3">
+                        <div class="address-name">{{ item.address && item.address.name || '-' }}</div>
+                        <div class="order-meta">{{ item.address && item.address.phone || '-' }}</div>
+                        <div class="order-meta address-line">{{ formatAddress(item.address) }}</div>
+                    </t-col>
+                    <t-col :xs="12" :md="2" style="text-align:right">
+                        <t-space direction="vertical" align="end">
+                            <t-select
+                                :model-value="item.status"
+                                style="width:132px"
+                                @@change="function(value){ updateStatus(item, value); }"
+                            >
+                                <t-option
+                                    v-for="status in editableStatuses"
+                                    :key="status.value"
+                                    :value="status.value"
+                                    :label="status.label"
+                                />
+                            </t-select>
+                            <t-button variant="text" theme="primary" @@click="toggleExpand(item)">
+                                {{ expandedId === item.id ? '收起明细' : '查看明细' }}
+                            </t-button>
+                        </t-space>
+                    </t-col>
+                </t-row>
+
+                <div v-if="expandedId === item.id" class="order-detail">
+                    <div class="detail-title">商品明细</div>
+                    <div class="detail-row" v-for="line in item.items" :key="line.productGuid">
+                        <div>
+                            <div class="line-number">{{ line.number || line.productGuid }}</div>
+                            <div class="order-meta">{{ line.product && line.product.composition || '-' }} / {{ line.product && line.product.doorframe || '-' }}</div>
+                        </div>
+                        <div class="line-amount">
+                            {{ line.quantity }} × ￥{{ formatMoney(line.price) }} = ￥{{ formatMoney(line.amount) }}
+                        </div>
+                    </div>
+                </div>
+            </t-card>
+        </div>
+
+        <t-row justify="center" style="margin-top:16px" v-if="pageData.total > pageData.pageSize">
+            <t-pagination
+                v-model="pageData.current"
+                :total="pageData.total"
+                :page-size="pageData.pageSize"
+                :page-size-options="[10, 20, 50]"
+                show-jumper
+                @@change="onPageChange"
+            />
+        </t-row>
+    </t-card>
+</div>
+
+<style>
+.order-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+.order-card {
+    border-radius: 8px;
+}
+.order-id {
+    font-size: 14px;
+    font-weight: 700;
+    color: #1f2329;
+    word-break: break-all;
+}
+.order-meta {
+    margin-top: 6px;
+    font-size: 12px;
+    color: #86909c;
+    line-height: 1.45;
+}
+.order-total {
+    margin-top: 10px;
+    font-size: 18px;
+    font-weight: 700;
+    color: #d54941;
+}
+.address-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: #1f2329;
+}
+.address-line {
+    max-width: 260px;
+}
+.order-detail {
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px solid #edf0f5;
+}
+.detail-title {
+    margin-bottom: 10px;
+    font-size: 13px;
+    font-weight: 700;
+    color: #4e5969;
+}
+.detail-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 10px 0;
+    border-top: 1px solid #f2f3f5;
+}
+.detail-row:first-of-type {
+    border-top: 0;
+}
+.line-number {
+    font-size: 13px;
+    font-weight: 600;
+    color: #1f2329;
+}
+.line-amount {
+    min-width: 180px;
+    text-align: right;
+    font-size: 13px;
+    color: #4e5969;
+}
+</style>
+
+@@section Scripts {
+    <script src="~/js/order.js"></script>
+}

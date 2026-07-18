@@ -1,0 +1,73 @@
+@{
+    ViewData["Title"] = "小程序数据";
+}
+
+<div id="mini-admin-app">
+    <t-card :bordered="false" style="margin-bottom:16px">
+        <t-row :gutter="16" align="middle">
+            <t-col :span="8">
+                <t-space>
+                    <t-input
+                        v-model="keyword"
+                        clearable
+                        style="width:260px"
+                        placeholder="搜索用户、商品、电话"
+                        @@enter="search"
+                    />
+                    <t-button theme="primary" @@click="search">
+                        <template #icon><t-icon name="search" /></template>
+                        搜索
+                    </t-button>
+                    <t-button theme="primary" variant="outline" @@click="queryData" :loading="loading">
+                        <template #icon><t-icon name="refresh" /></template>
+                        刷新
+                    </t-button>
+                </t-space>
+            </t-col>
+            <t-col :span="4" style="text-align:right">
+                <span style="color:#999;font-size:13px">共 {{ pageData.total }} 条记录</span>
+            </t-col>
+        </t-row>
+    </t-card>
+
+    <t-card :bordered="false">
+        <t-tabs v-model="activeTab" @@change="onTabChange">
+            <t-tab-panel value="users" label="用户" />
+            <t-tab-panel value="cart" label="购物车" />
+            <t-tab-panel value="favorites" label="收藏" />
+            <t-tab-panel value="addresses" label="地址" />
+        </t-tabs>
+
+        <div v-if="loading" style="text-align:center;padding:56px 0">
+            <t-loading size="large" text="加载中..." />
+        </div>
+        <div v-else-if="tableData.length === 0" style="text-align:center;padding:56px 0">
+            <t-icon name="inbox" size="48px" style="color:#ccc" />
+            <p style="color:#999;margin-top:12px">暂无数据</p>
+        </div>
+        <t-table
+            v-else
+            row-key="rowKey"
+            :data="tableData"
+            :columns="columns"
+            :pagination="null"
+            stripe
+            style="margin-top:16px"
+        />
+
+        <t-row justify="center" style="margin-top:16px" v-if="pageData.total > pageData.pageSize">
+            <t-pagination
+                v-model="pageData.current"
+                :total="pageData.total"
+                :page-size="pageData.pageSize"
+                :page-size-options="[10, 20, 50]"
+                show-jumper
+                @@change="onPageChange"
+            />
+        </t-row>
+    </t-card>
+</div>
+
+@@section Scripts {
+    <script src="~/js/mini-admin.js"></script>
+}
