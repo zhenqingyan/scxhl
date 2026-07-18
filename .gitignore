@@ -1,5 +1,7 @@
 bin/
 obj/
+**/bin/
+**/obj/
 wwwroot/upload/
 .vs/
 .idea/
@@ -11,3 +13,5 @@ setup-secrets.bat
 .codegraph/
 .claude/
 *.DotSettings.user
+.codex/
+AGENTS.md

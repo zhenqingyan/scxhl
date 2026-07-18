@@ -19,10 +19,16 @@
             扫描二维码，了解更多面料产品信息
         </div>
         <div style="margin-top:16px">
-            <t-button theme="primary" variant="outline" href="/Product">
-                <template #icon><t-icon name="view-list" /></template>
-                浏览产品目录
-            </t-button>
+            <t-space>
+                <t-button theme="primary" variant="outline" href="/Product">
+                    <template #icon><t-icon name="view-list" /></template>
+                    浏览产品目录
+                </t-button>
+                <t-button theme="primary" href="/Order">
+                    <template #icon><t-icon name="cart" /></template>
+                    查看订单
+                </t-button>
+            </t-space>
         </div>
     </t-card>
 </div>
