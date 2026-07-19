@@ -80,7 +80,7 @@ namespace henglong.Web.Common
 
         public async Task<IReadOnlyList<ImagesVm>> GetEnabledProductsAsync(CancellationToken ct = default)
         {
-            var sql = @"SELECT Id, Guid, Status, CreateTime, Name, Level, Number, Composition, YarnCount, Density, GramWeight, Doorframe, Width, Height, Percent
+            var sql = @"SELECT Id, Guid, Status, CreateTime, Name, ImageHash, Level, Number, Composition, YarnCount, Density, GramWeight, Doorframe, Width, Height, Percent
                         FROM products
                         WHERE Status = 1
                         ORDER BY `Level` DESC, `Id` ASC";
@@ -91,7 +91,7 @@ namespace henglong.Web.Common
 
         public async Task<ImagesVm?> GetEnabledProductAsync(string guid, CancellationToken ct = default)
         {
-            var sql = @"SELECT Id, Guid, Status, CreateTime, Name, Level, Number, Composition, YarnCount, Density, GramWeight, Doorframe, Width, Height, Percent
+            var sql = @"SELECT Id, Guid, Status, CreateTime, Name, ImageHash, Level, Number, Composition, YarnCount, Density, GramWeight, Doorframe, Width, Height, Percent
                         FROM products
                         WHERE Status = 1 AND Guid = @Guid
                         LIMIT 1";

@@ -24,6 +24,7 @@ namespace henglong.Web.Common
                   `Status`      TINYINT(1)    NOT NULL DEFAULT 1,
                   `CreateTime`  DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
                   `Name`        VARCHAR(255)  NOT NULL DEFAULT '',
+                  `ImageHash`   VARCHAR(64)   NOT NULL DEFAULT '',
                   `Level`       INT           NOT NULL DEFAULT 1,
                   `Number`      VARCHAR(100)  NOT NULL DEFAULT '',
                   `Composition` VARCHAR(255)  NOT NULL DEFAULT '',
@@ -35,7 +36,8 @@ namespace henglong.Web.Common
                   `Height`      INT           NOT NULL DEFAULT 0,
                   `Percent`     DECIMAL(10,2) NOT NULL DEFAULT 0.00,
                   PRIMARY KEY (`Id`),
-                  UNIQUE KEY `uk_guid` (`Guid`)
+                  UNIQUE KEY `uk_guid` (`Guid`),
+                  KEY `idx_image_hash` (`ImageHash`)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
 
             using var conn = new MySqlConnection(_connectionString);
@@ -47,8 +49,8 @@ namespace henglong.Web.Common
             try
             {
                 var sql =
-                    @"INSERT INTO products (Guid, Status, CreateTime, Name, Level, Number, Composition, YarnCount, Density, GramWeight, Doorframe, Width, Height, Percent)
-                            VALUES (@Guid, @Status, @CreateTime, @Name, @Level, @Number, @Composition, @YarnCount, @Density, @GramWeight, @Doorframe, @Width, @Height, @Percent)";
+                    @"INSERT INTO products (Guid, Status, CreateTime, Name, ImageHash, Level, Number, Composition, YarnCount, Density, GramWeight, Doorframe, Width, Height, Percent)
+                            VALUES (@Guid, @Status, @CreateTime, @Name, @ImageHash, @Level, @Number, @Composition, @YarnCount, @Density, @GramWeight, @Doorframe, @Width, @Height, @Percent)";
 
                 using var conn = new MySqlConnection(_connectionString);
                 conn.Execute(sql, entity);
@@ -61,7 +63,7 @@ namespace henglong.Web.Common
             }
         }
 
-        public async Task<IList<ImagesVm>> GetImagesDataAsync(int offset, int limit, bool isFilterInvalid, CancellationToken ct = default)
+        public async Task<IList<ImagesVm>> GetImagesDataAsync(int offset, int limit, bool isFilterInvalid, string sortField = "", string sortOrder = "", CancellationToken ct = default)
         {
             var conditionSql = "";
             if (isFilterInvalid)
@@ -69,8 +71,16 @@ namespace henglong.Web.Common
                 conditionSql = "WHERE status=1";
             }
 
+            var orderSql = "ORDER BY `Level` DESC, `Id` ASC";
+            if (string.Equals(sortField, "createTime", StringComparison.OrdinalIgnoreCase))
+            {
+                orderSql = string.Equals(sortOrder, "asc", StringComparison.OrdinalIgnoreCase)
+                    ? "ORDER BY `CreateTime` ASC, `Id` ASC"
+                    : "ORDER BY `CreateTime` DESC, `Id` DESC";
+            }
+
             var sql =
-                $"SELECT Id, Guid, Status, CreateTime, Name, Level, Number, Composition, YarnCount, Density, GramWeight, Doorframe, Width, Height, Percent FROM products {conditionSql} ORDER BY `Level` DESC, `Id` ASC LIMIT @Offset, @Limit";
+                $"SELECT Id, Guid, Status, CreateTime, Name, ImageHash, Level, Number, Composition, YarnCount, Density, GramWeight, Doorframe, Width, Height, Percent FROM products {conditionSql} {orderSql} LIMIT @Offset, @Limit";
 
             await using var conn = new MySqlConnection(_connectionString);
             var result = await conn.QueryAsync<ImagesVm>(new CommandDefinition(sql, new { Offset = offset, Limit = limit }, cancellationToken: ct));
@@ -83,6 +93,19 @@ namespace henglong.Web.Common
             await using var conn = new MySqlConnection(_connectionString);
             var result = await conn.ExecuteScalarAsync<int>(new CommandDefinition(sql, cancellationToken: ct));
             return result;
+        }
+
+        public async Task<bool> ImageHashExistsAsync(string imageHash, CancellationToken ct = default)
+        {
+            if (string.IsNullOrWhiteSpace(imageHash))
+            {
+                return false;
+            }
+
+            var sql = "SELECT COUNT(1) FROM products WHERE ImageHash = @ImageHash LIMIT 1";
+            await using var conn = new MySqlConnection(_connectionString);
+            var result = await conn.ExecuteScalarAsync<int>(new CommandDefinition(sql, new { ImageHash = imageHash }, cancellationToken: ct));
+            return result > 0;
         }
 
         public bool UpdateStatus(string guid, bool status)
@@ -154,6 +177,68 @@ namespace henglong.Web.Common
             {
                 _logger.LogError(ex, "Failed to delete product {Guid}", guid);
                 return false;
+            }
+        }
+
+        public async Task<IReadOnlyList<DuplicateImageGroupVm>> GetDuplicateImageGroupsAsync(CancellationToken ct = default)
+        {
+            var sql = @"
+                SELECT Id, Guid, Status, CreateTime, Name, ImageHash, Level, Number, Composition, YarnCount, Density, GramWeight, Doorframe, Width, Height, Percent
+                FROM products p
+                WHERE p.ImageHash IS NOT NULL
+                    AND p.ImageHash <> ''
+                    AND EXISTS (
+                        SELECT 1
+                        FROM products otherRow
+                        WHERE otherRow.ImageHash = p.ImageHash
+                            AND otherRow.Id <> p.Id
+                    )
+                ORDER BY p.ImageHash ASC, p.Id ASC";
+
+            await using var conn = new MySqlConnection(_connectionString);
+            var rows = await conn.QueryAsync<ImagesVm>(new CommandDefinition(sql, cancellationToken: ct));
+
+            return rows
+                .GroupBy(item => item.ImageHash)
+                .Select(group =>
+                {
+                    var ordered = group.OrderBy(item => item.Id).ToList();
+                    var keepItem = ordered.FirstOrDefault();
+                    return new DuplicateImageGroupVm
+                    {
+                        Name = keepItem?.Name ?? string.Empty,
+                        ImageHash = group.Key,
+                        Width = keepItem?.Width ?? 0,
+                        Height = keepItem?.Height ?? 0,
+                        KeepItem = keepItem,
+                        DeleteItems = ordered.Skip(1).ToList()
+                    };
+                })
+                .Where(group => group.KeepItem != null && group.DeleteItems.Count > 0)
+                .ToList();
+        }
+
+        public async Task<int> CleanDuplicateImagesAsync(CancellationToken ct = default)
+        {
+            try
+            {
+                var sql = @"
+                    DELETE p
+                    FROM products p
+                    INNER JOIN products keepRow ON keepRow.ImageHash = p.ImageHash
+                        AND keepRow.Id < p.Id
+                    WHERE p.ImageHash IS NOT NULL
+                        AND p.ImageHash <> ''
+                        AND keepRow.ImageHash IS NOT NULL
+                        AND keepRow.ImageHash <> ''";
+
+                await using var conn = new MySqlConnection(_connectionString);
+                return await conn.ExecuteAsync(new CommandDefinition(sql, cancellationToken: ct));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to clean duplicate products");
+                return -1;
             }
         }
     }

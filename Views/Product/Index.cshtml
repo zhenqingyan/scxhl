@@ -26,12 +26,40 @@
                         <template #icon><t-icon name="refresh" /></template>
                         刷新列表
                     </t-button>
+                    <t-button
+                        :theme="sortState.sortField === 'createTime' && sortState.sortOrder === 'asc' ? 'primary' : 'default'"
+                        variant="outline"
+                        @@click="setCreateTimeSort('asc')"
+                    >
+                        <template #icon><t-icon name="arrow-up" /></template>
+                        时间正序
+                    </t-button>
+                    <t-button
+                        :theme="sortState.sortField === 'createTime' && sortState.sortOrder === 'desc' ? 'primary' : 'default'"
+                        variant="outline"
+                        @@click="setCreateTimeSort('desc')"
+                    >
+                        <template #icon><t-icon name="arrow-down" /></template>
+                        时间倒序
+                    </t-button>
+                    <t-button theme="warning" variant="outline" :loading="duplicatePreviewLoading || cleaning" @@click="openDuplicateDialog">
+                        <template #icon><t-icon name="clear" /></template>
+                        清理重复
+                    </t-button>
                 </t-space>
             </t-col>
             <t-col :span="12" style="text-align:right">
                 <span style="color:#999;font-size:13px">共 {{ pageData.total }} 条记录</span>
             </t-col>
         </t-row>
+        <t-alert
+            v-if="uploadResult.visible"
+            :theme="uploadResult.theme"
+            :message="uploadResult.message"
+            close
+            style="margin-top:12px"
+            @@close="uploadResult.visible = false"
+        />
     </t-card>
 
     <!-- 分页（上方） -->
@@ -133,69 +161,55 @@
                 </div>
 
                 <!-- 属性展示 -->
-                <div class="item-props-display" style="margin-top:12px">
-                    <t-row :gutter="8">
-                        <t-col :span="6">
-                            <div class="prop-display-item">
-                                <div class="prop-label">排序</div>
-                                <div class="prop-value">{{ item.level }}</div>
-                            </div>
-                        </t-col>
-                        <t-col :span="6">
-                            <div class="prop-display-item">
-                                <div class="prop-label">编号</div>
-                                <div class="prop-value">{{ item.number || '-' }}</div>
-                            </div>
-                        </t-col>
-                        <t-col :span="6">
-                            <div class="prop-display-item">
-                                <div class="prop-label">成份</div>
-                                <div class="prop-value">{{ item.composition || '-' }}</div>
-                            </div>
-                        </t-col>
-                        <t-col :span="6">
-                            <div class="prop-display-item">
-                                <div class="prop-label">纱支</div>
-                                <div class="prop-value">{{ item.yarnCount || '-' }}</div>
-                            </div>
-                        </t-col>
-                        <t-col :span="6">
-                            <div class="prop-display-item">
-                                <div class="prop-label">密度</div>
-                                <div class="prop-value">{{ item.density || '-' }}</div>
-                            </div>
-                        </t-col>
-                        <t-col :span="6">
-                            <div class="prop-display-item">
-                                <div class="prop-label">克重</div>
-                                <div class="prop-value">{{ item.gramWeight || '-' }}</div>
-                            </div>
-                        </t-col>
-                        <t-col :span="6">
-                            <div class="prop-display-item">
-                                <div class="prop-label">门幅</div>
-                                <div class="prop-value">{{ item.doorframe || '-' }}</div>
-                            </div>
-                        </t-col>
-                        <t-col :span="6">
-                            <div class="prop-display-item">
-                                <div class="prop-label">宽</div>
-                                <div class="prop-value">{{ item.width }}</div>
-                            </div>
-                        </t-col>
-                        <t-col :span="6">
-                            <div class="prop-display-item">
-                                <div class="prop-label">高</div>
-                                <div class="prop-value">{{ item.height }}</div>
-                            </div>
-                        </t-col>
-                        <t-col :span="6">
-                            <div class="prop-display-item">
-                                <div class="prop-label">比例</div>
-                                <div class="prop-value">{{ item.percent }}</div>
-                            </div>
-                        </t-col>
-                    </t-row>
+                <div class="item-props-display">
+                    <div class="props-grid">
+                        <div class="prop-display-item">
+                            <span class="prop-label">排序</span>
+                            <span class="prop-value">{{ item.level }}</span>
+                        </div>
+                        <div class="prop-display-item">
+                            <span class="prop-label">编号</span>
+                            <span class="prop-value">{{ item.number || '-' }}</span>
+                        </div>
+                        <div class="prop-display-item">
+                            <span class="prop-label">成份</span>
+                            <span class="prop-value">{{ item.composition || '-' }}</span>
+                        </div>
+                        <div class="prop-display-item">
+                            <span class="prop-label">纱支</span>
+                            <span class="prop-value">{{ item.yarnCount || '-' }}</span>
+                        </div>
+                        <div class="prop-display-item">
+                            <span class="prop-label">密度</span>
+                            <span class="prop-value">{{ item.density || '-' }}</span>
+                        </div>
+                        <div class="prop-display-item">
+                            <span class="prop-label">克重</span>
+                            <span class="prop-value">{{ item.gramWeight || '-' }}</span>
+                        </div>
+                        <div class="prop-display-item">
+                            <span class="prop-label">门幅</span>
+                            <span class="prop-value">{{ item.doorframe || '-' }}</span>
+                        </div>
+                        <div class="prop-display-item">
+                            <span class="prop-label">宽</span>
+                            <span class="prop-value">{{ item.width }}</span>
+                        </div>
+                        <div class="prop-display-item">
+                            <span class="prop-label">高</span>
+                            <span class="prop-value">{{ item.height }}</span>
+                        </div>
+                        <div class="prop-display-item">
+                            <span class="prop-label">比例</span>
+                            <span class="prop-value">{{ item.percent }}</span>
+                        </div>
+                        <div class="prop-display-item prop-hash">
+                            <span class="prop-label">指纹</span>
+                            <t-tooltip :content="item.imageHash || '未生成'" placement="top">
+                                <span class="prop-value hash-value">{{ formatHash(item.imageHash) }}</span>
+                            </t-tooltip>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- 底部信息 -->
@@ -243,6 +257,63 @@
                 </div>
             </t-col>
         </t-row>
+    </t-dialog>
+
+    <!-- 重复数据预览对话框 -->
+    <t-dialog
+        v-model:visible="duplicateDialogVisible"
+        header="清理重复图片"
+        width="980px"
+        :confirm-btn="{ content: '确认清理', theme: 'danger', loading: cleaning, disabled: duplicateDeleteCount === 0 }"
+        :cancel-btn="{ content: '取消' }"
+        @@confirm="cleanDuplicateData"
+        @@close="duplicateDialogVisible = false"
+    >
+        <div v-if="duplicatePreviewLoading" class="duplicate-loading">
+            <t-loading size="large" text="正在检查重复数据..." />
+        </div>
+        <div v-else-if="duplicateGroups.length === 0" class="duplicate-empty">
+            <t-icon name="check-circle" size="44px" />
+            <div>未发现重复数据</div>
+        </div>
+        <div v-else>
+            <div class="duplicate-summary">
+                <t-tag theme="warning" variant="light">重复分组 {{ duplicateGroups.length }} 组</t-tag>
+                <t-tag theme="danger" variant="light">将删除 {{ duplicateDeleteCount }} 条</t-tag>
+                <span>按 ImageHash 判断重复，保留每组最早的一条记录，仅删除数据库重复记录。</span>
+            </div>
+            <div class="duplicate-list">
+                <div class="duplicate-group" v-for="group in duplicateGroups" :key="group.imageHash">
+                    <div class="duplicate-group-title">
+                        <span>{{ group.name }}</span>
+                        <t-space :size="6">
+                            <t-tooltip :content="group.imageHash" placement="top">
+                                <t-tag size="small" variant="light">{{ formatHash(group.imageHash) }}</t-tag>
+                            </t-tooltip>
+                            <t-tag size="small" variant="light">{{ group.width }} x {{ group.height }}</t-tag>
+                        </t-space>
+                    </div>
+                    <div class="duplicate-items">
+                        <div class="duplicate-item keep" v-if="group.keepItem">
+                            <t-tag theme="success" size="small">保留</t-tag>
+                            <t-image :src="imageUrl(group.keepItem.guid)" fit="contain" class="duplicate-thumb" />
+                            <div class="duplicate-meta">
+                                <strong>{{ group.keepItem.number || group.keepItem.name }}</strong>
+                                <span>{{ formatTime(group.keepItem.createTime) }}</span>
+                            </div>
+                        </div>
+                        <div class="duplicate-item remove" v-for="item in group.deleteItems" :key="item.guid">
+                            <t-tag theme="danger" size="small">删除</t-tag>
+                            <t-image :src="imageUrl(item.guid)" fit="contain" class="duplicate-thumb" />
+                            <div class="duplicate-meta">
+                                <strong>{{ item.number || item.name }}</strong>
+                                <span>{{ formatTime(item.createTime) }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </t-dialog>
 
     <!-- 底部分页 -->
@@ -307,21 +378,45 @@
 /* 属性展示区域 */
 .item-props-display {
     background: #f5f6fa;
-    border-radius: 6px;
-    padding: 12px;
+    border-radius: 4px;
+    padding: 8px;
+    margin-top: 8px;
+}
+.props-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 10px;
+    row-gap: 5px;
 }
 .prop-display-item {
-    margin-bottom: 8px;
+    display: grid;
+    grid-template-columns: 34px minmax(0, 1fr);
+    align-items: center;
+    min-width: 0;
+    line-height: 18px;
+}
+.prop-hash {
+    grid-column: 1 / -1;
+    grid-template-columns: 34px minmax(0, 1fr);
 }
 .prop-label {
-    font-size: 11px;
+    font-size: 10px;
     color: #999;
-    margin-bottom: 2px;
 }
 .prop-value {
-    font-size: 13px;
+    font-size: 12px;
     color: #333;
     font-weight: 500;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.hash-value {
+    font-family: Consolas, "Courier New", monospace;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 /* 编辑对话框 */
 .edit-field {
@@ -332,6 +427,88 @@
     font-size: 12px;
     color: #666;
     margin-bottom: 4px;
+}
+.duplicate-loading,
+.duplicate-empty {
+    min-height: 220px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 12px;
+    color: #666;
+}
+.duplicate-summary {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 14px;
+    color: #666;
+    font-size: 13px;
+}
+.duplicate-list {
+    max-height: 560px;
+    overflow: auto;
+    padding-right: 4px;
+}
+.duplicate-group {
+    border: 1px solid #e7e7e7;
+    border-radius: 6px;
+    padding: 12px;
+    margin-bottom: 12px;
+    background: #fff;
+}
+.duplicate-group-title {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 10px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #222;
+}
+.duplicate-items {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 10px;
+}
+.duplicate-item {
+    border: 1px solid #ededed;
+    border-radius: 6px;
+    padding: 8px;
+    min-width: 0;
+    background: #fafafa;
+}
+.duplicate-item.keep {
+    border-color: #bcebd0;
+    background: #f3fbf6;
+}
+.duplicate-item.remove {
+    border-color: #ffd8d5;
+    background: #fff7f6;
+}
+.duplicate-thumb {
+    width: 100%;
+    height: 120px;
+    margin-top: 8px;
+    background: #fff;
+    border-radius: 4px;
+}
+.duplicate-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    margin-top: 8px;
+    font-size: 12px;
+    color: #666;
+    min-width: 0;
+}
+.duplicate-meta strong {
+    color: #222;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 </style>
 

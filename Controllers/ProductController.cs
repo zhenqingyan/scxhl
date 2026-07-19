@@ -4,6 +4,7 @@ using henglong.Web.Models;
 using henglong.Web.Common;
 using Aliyun.OSS;
 using SixLabors.ImageSharp;
+using System.Security.Cryptography;
 
 namespace henglong.Web.Controllers
 {
@@ -53,7 +54,7 @@ namespace henglong.Web.Controllers
             if (entity.pageSize > 100) entity.pageSize = 100;
 
             var offset = (entity.current - 1) * entity.pageSize;
-            var imgsList = await _mySqlHelper.GetImagesDataAsync(offset, entity.pageSize, false, ct);
+            var imgsList = await _mySqlHelper.GetImagesDataAsync(offset, entity.pageSize, false, entity.sortField, entity.sortOrder, ct);
             var totalCount = await _mySqlHelper.GetTotalCountImagesDataAsync(ct);
             return Json(new
             {
@@ -73,7 +74,10 @@ namespace henglong.Web.Controllers
             }
 
             var uploaded = 0;
-            var skipped = 0;
+            var duplicate = 0;
+            var invalidType = 0;
+            var oversized = 0;
+            var identifyFailed = 0;
 
             foreach (var item in files)
             {
@@ -82,7 +86,7 @@ namespace henglong.Web.Controllers
                 if (!AllowedExtensions.Contains(ext))
                 {
                     _logger.LogWarning("Rejected file with unsupported extension: {FileName}", item.FileName);
-                    skipped++;
+                    invalidType++;
                     continue;
                 }
 
@@ -90,12 +94,21 @@ namespace henglong.Web.Controllers
                 if (item.Length > MaxFileSize)
                 {
                     _logger.LogWarning("Rejected oversized file: {FileName} ({Size} bytes)", item.FileName, item.Length);
-                    skipped++;
+                    oversized++;
                     continue;
                 }
 
                 using var ms = new MemoryStream();
                 await item.CopyToAsync(ms, ct);
+                ms.Position = 0;
+                var imageHash = await ComputeSha256Async(ms, ct);
+                if (await _mySqlHelper.ImageHashExistsAsync(imageHash, ct))
+                {
+                    _logger.LogInformation("Skipped duplicate image upload: {FileName} ({ImageHash})", item.FileName, imageHash);
+                    duplicate++;
+                    continue;
+                }
+
                 ms.Position = 0;
 
                 ImageInfo? imageInfo;
@@ -106,11 +119,15 @@ namespace henglong.Web.Controllers
                 catch (Exception ex)
                 {
                     _logger.LogWarning(ex, "Failed to identify image format: {FileName}", item.FileName);
+                    identifyFailed++;
                     continue;
                 }
 
                 if (imageInfo == null)
+                {
+                    identifyFailed++;
                     continue;
+                }
 
                 int width = imageInfo.Width;
                 int height = imageInfo.Height;
@@ -123,6 +140,7 @@ namespace henglong.Web.Controllers
                     Status = true,
                     CreateTime = DateTime.Now,
                     Name = item.FileName,
+                    ImageHash = imageHash,
                     Level = 1,
                     Number = "",
                     Composition = "",
@@ -142,10 +160,22 @@ namespace henglong.Web.Controllers
                 uploaded++;
             }
 
+            var messageParts = new List<string> { $"成功上传 {uploaded} 个文件" };
+            if (duplicate > 0) messageParts.Add($"跳过 {duplicate} 个重复文件");
+            if (invalidType > 0) messageParts.Add($"跳过 {invalidType} 个格式不支持文件");
+            if (oversized > 0) messageParts.Add($"跳过 {oversized} 个超大文件");
+            if (identifyFailed > 0) messageParts.Add($"跳过 {identifyFailed} 个无法识别图片");
+
             return Json(new
             {
                 success = true,
-                message = $"成功上传 {uploaded} 个文件" + (skipped > 0 ? $"，跳过 {skipped} 个无效文件" : "")
+                uploaded,
+                duplicate,
+                invalidType,
+                oversized,
+                identifyFailed,
+                skipped = duplicate + invalidType + oversized + identifyFailed,
+                message = string.Join("，", messageParts)
             });
         }
 
@@ -215,6 +245,45 @@ namespace henglong.Web.Controllers
 
             var result = await _mySqlHelper.DeleteOneAsync(entity.guid, ct);
             return Json(result ? 1 : 0);
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> GetDuplicateData(CancellationToken ct)
+        {
+            var groups = await _mySqlHelper.GetDuplicateImageGroupsAsync(ct);
+            var deleteCount = groups.Sum(group => group.DeleteItems.Count);
+
+            return Json(new
+            {
+                success = true,
+                groups,
+                groupCount = groups.Count,
+                deleteCount
+            });
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> CleanDuplicateData(CancellationToken ct)
+        {
+            var deletedCount = await _mySqlHelper.CleanDuplicateImagesAsync(ct);
+            if (deletedCount < 0)
+            {
+                return Json(new { success = false, message = "清理失败" });
+            }
+
+            return Json(new
+            {
+                success = true,
+                deletedCount,
+                message = deletedCount > 0 ? $"成功清理 {deletedCount} 条重复数据" : "未发现重复数据"
+            });
+        }
+
+        private static async Task<string> ComputeSha256Async(Stream stream, CancellationToken ct)
+        {
+            using var sha256 = SHA256.Create();
+            var hash = await sha256.ComputeHashAsync(stream, ct);
+            return Convert.ToHexString(hash).ToLowerInvariant();
         }
     }
 }

@@ -23,7 +23,7 @@ namespace henglong.Web.Controllers
             if (pageSize < 1) pageSize = 9;
             if (pageSize > 100) pageSize = 100;
 
-            var imgsList = await _mySqlHelper.GetImagesDataAsync(index * pageSize, pageSize, true, ct);
+            var imgsList = await _mySqlHelper.GetImagesDataAsync(index * pageSize, pageSize, true, ct: ct);
             return imgsList.ToList();
         }
     }

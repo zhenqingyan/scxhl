@@ -7,6 +7,7 @@ namespace henglong.Web.Models
         public bool Status { get; set; }
         public DateTime CreateTime { get; set; }
         public string Name { get; set; } = string.Empty;
+        public string ImageHash { get; set; } = string.Empty;
         public int Level { get; set; }
         public string Number { get; set; } = string.Empty;
         public string Composition { get; set; } = string.Empty;

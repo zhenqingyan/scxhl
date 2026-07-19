@@ -5,11 +5,25 @@ const app = createApp({
     setup() {
         // ─── 状态 ───────────────────────────────────────────────
         const loading = ref(false);
+        const cleaning = ref(false);
+        const duplicatePreviewLoading = ref(false);
+        const duplicateDialogVisible = ref(false);
+        const duplicateGroups = ref([]);
+        const duplicateDeleteCount = ref(0);
+        const uploadResult = reactive({
+            visible: false,
+            theme: 'success',
+            message: ''
+        });
         const tableData = ref([]);
         const pageData = reactive({
             current: 1,
             total: 0,
             pageSize: 12
+        });
+        const sortState = reactive({
+            sortField: '',
+            sortOrder: ''
         });
 
         // 上传接口地址
@@ -77,7 +91,9 @@ const app = createApp({
             try {
                 var resp = await axios.post('/Product/GetImgs', {
                     current: pageData.current,
-                    pageSize: pageData.pageSize
+                    pageSize: pageData.pageSize,
+                    sortField: sortState.sortField,
+                    sortOrder: sortState.sortOrder
                 });
                 tableData.value = resp.data.data;
                 pageData.total = resp.data.total;
@@ -93,6 +109,13 @@ const app = createApp({
         function onPageChange(pageInfo) {
             pageData.current = pageInfo.current;
             pageData.pageSize = pageInfo.pageSize;
+            queryData();
+        }
+
+        function setCreateTimeSort(order) {
+            sortState.sortField = 'createTime';
+            sortState.sortOrder = order === 'asc' ? 'asc' : 'desc';
+            pageData.current = 1;
             queryData();
         }
 
@@ -128,9 +151,75 @@ const app = createApp({
             }
         }
 
+        // ─── 清理重复数据 ───────────────────────────────────────
+        async function openDuplicateDialog() {
+            if (duplicatePreviewLoading.value || cleaning.value) return;
+
+            duplicateDialogVisible.value = true;
+            duplicatePreviewLoading.value = true;
+            duplicateGroups.value = [];
+            duplicateDeleteCount.value = 0;
+
+            try {
+                var resp = await axios.post('/Product/GetDuplicateData');
+                if (resp.data && resp.data.success) {
+                    duplicateGroups.value = resp.data.groups || [];
+                    duplicateDeleteCount.value = resp.data.deleteCount || 0;
+                    if (duplicateDeleteCount.value === 0) {
+                        MessagePlugin.info('未发现重复数据');
+                    }
+                } else {
+                    duplicateDialogVisible.value = false;
+                    MessagePlugin.error((resp.data && resp.data.message) || '检查重复数据失败');
+                }
+            } catch (e) {
+                duplicateDialogVisible.value = false;
+                MessagePlugin.error('检查重复数据请求失败');
+                console.error(e);
+            } finally {
+                duplicatePreviewLoading.value = false;
+            }
+        }
+
+        async function cleanDuplicateData() {
+            if (cleaning.value || duplicateDeleteCount.value === 0) return;
+
+            cleaning.value = true;
+            try {
+                var resp = await axios.post('/Product/CleanDuplicateData');
+                if (resp.data && resp.data.success) {
+                    MessagePlugin.success(resp.data.message || '清理完成');
+                    duplicateDialogVisible.value = false;
+                    duplicateGroups.value = [];
+                    duplicateDeleteCount.value = 0;
+                    pageData.current = 1;
+                    await queryData();
+                } else {
+                    MessagePlugin.error((resp.data && resp.data.message) || '清理失败');
+                }
+            } catch (e) {
+                MessagePlugin.error('清理请求失败');
+                console.error(e);
+            } finally {
+                cleaning.value = false;
+            }
+        }
+
         // ─── 上传回调 ────────────────────────────────────────────
         function onUploadSuccess(ctx) {
-            MessagePlugin.success((ctx.file && ctx.file.name || '文件') + ' 上传成功');
+            var summary = normalizeUploadResponse(ctx && ctx.response);
+            if (summary.message) {
+                uploadResult.visible = true;
+                uploadResult.theme = summary.theme;
+                uploadResult.message = summary.message;
+                showUploadMessage(summary);
+            } else {
+                var fallbackMessage = (ctx.file && ctx.file.name || '文件') + ' 上传成功';
+                uploadResult.visible = true;
+                uploadResult.theme = 'success';
+                uploadResult.message = fallbackMessage;
+                MessagePlugin.success(fallbackMessage);
+            }
             queryData();
         }
 
@@ -147,13 +236,92 @@ const app = createApp({
             return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) + ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes());
         }
 
+        function imageUrl(guid) {
+            return 'https://henglong.oss-cn-shanghai.aliyuncs.com/' + guid;
+        }
+
+        function formatHash(hash) {
+            if (!hash) return '未生成';
+            if (hash.length <= 18) return hash;
+            return hash.slice(0, 10) + '...' + hash.slice(-6);
+        }
+
+        function normalizeUploadResponse(response) {
+            var list = Array.isArray(response) ? response : [response];
+            var total = {
+                uploaded: 0,
+                duplicate: 0,
+                invalidType: 0,
+                oversized: 0,
+                identifyFailed: 0
+            };
+
+            list.forEach(function (item) {
+                var data = parseUploadResponseItem(item);
+                if (!data) return;
+                total.uploaded += Number(data.uploaded) || 0;
+                total.duplicate += Number(data.duplicate) || 0;
+                total.invalidType += Number(data.invalidType) || 0;
+                total.oversized += Number(data.oversized) || 0;
+                total.identifyFailed += Number(data.identifyFailed) || 0;
+            });
+
+            var parts = ['成功上传 ' + total.uploaded + ' 个文件'];
+            if (total.duplicate > 0) parts.push('跳过 ' + total.duplicate + ' 个重复文件');
+            if (total.invalidType > 0) parts.push('跳过 ' + total.invalidType + ' 个格式不支持文件');
+            if (total.oversized > 0) parts.push('跳过 ' + total.oversized + ' 个超大文件');
+            if (total.identifyFailed > 0) parts.push('跳过 ' + total.identifyFailed + ' 个无法识别图片');
+
+            var skipped = total.duplicate + total.invalidType + total.oversized + total.identifyFailed;
+            if (total.uploaded === 0 && skipped === 0) {
+                return { message: '', theme: 'success' };
+            }
+
+            return {
+                message: parts.join('，'),
+                theme: total.uploaded > 0 ? 'success' : (total.duplicate > 0 ? 'warning' : 'info')
+            };
+        }
+
+        function parseUploadResponseItem(item) {
+            if (!item) return null;
+            var data = item;
+            if (typeof data === 'string') {
+                try {
+                    data = JSON.parse(data);
+                } catch (e) {
+                    return null;
+                }
+            }
+            if (data.response) return parseUploadResponseItem(data.response);
+            if (data.data) return parseUploadResponseItem(data.data);
+            return data;
+        }
+
+        function showUploadMessage(summary) {
+            if (summary.theme === 'success') {
+                MessagePlugin.success(summary.message);
+            } else if (summary.theme === 'warning') {
+                MessagePlugin.warning(summary.message);
+            } else {
+                MessagePlugin.info(summary.message);
+            }
+        }
+
         // ─── 初始化 ──────────────────────────────────────────────
         queryData();
 
         return {
             loading,
+            cleaning,
+            duplicatePreviewLoading,
+            duplicateDialogVisible,
+            duplicateGroups,
+            duplicateDeleteCount,
+            uploadResult,
             tableData,
             pageData,
+            sortState,
             uploadUrl,
             editDialogVisible,
             editSaving,
@@ -163,11 +331,16 @@ const app = createApp({
             saveEdit,
             queryData,
             onPageChange,
+            setCreateTimeSort,
             delData,
             changeStatus,
+            openDuplicateDialog,
+            cleanDuplicateData,
             onUploadSuccess,
             onUploadFail,
-            formatTime
+            formatTime,
+            imageUrl,
+            formatHash
         };
     }
 });
